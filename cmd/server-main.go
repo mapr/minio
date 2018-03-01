@@ -36,6 +36,11 @@ var serverFlags = []cli.Flag{
 		Value: ":" + globalMinioPort,
 		Usage: "Bind to a specific ADDRESS:PORT, ADDRESS can be an IP or hostname.",
 	},
+	cli.StringFlag{
+		Name: "tenants, T",
+		Value: "",
+		Usage: "Path to tenants mapping file. Supply to enable multi-tenancy.",
+	},
 }
 
 var serverCmd = cli.Command{
@@ -143,6 +148,14 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	globalIsDistXL = (setupType == DistXLSetupType)
 	if globalIsDistXL {
 		globalIsXL = true
+	}
+
+	tenantsFile := ctx.String("tenants")
+	if ( tenantsFile != "") {
+		// TODO(RostakaGmfun): Make refresh period either a compile-time constant
+		// or configurable variable
+		globalTenantMapper, err = newLocalTenantMapper(tenantsFile, 60 * 5)
+		errorIf(err, "Failed to intialize multi-tenancy")
 	}
 }
 

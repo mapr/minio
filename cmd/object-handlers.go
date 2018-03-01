@@ -70,7 +70,7 @@ func errAllowableObjectNotFound(ctx context.Context, bucket string, r *http.Requ
 		resource := "/" + bucket
 		sourceIP := handlers.GetSourceIP(r)
 		if s3Error := enforceBucketPolicy(ctx, bucket, "s3:ListBucket", resource,
-			r.Referer(), sourceIP, r.URL.Query()); s3Error != ErrNone {
+			r.Referer(), sourceIP, r.URL.Query(), r); s3Error != ErrNone {
 			return ErrAccessDenied
 		}
 	}
@@ -90,7 +90,7 @@ func (api objectAPIHandlers) GetObjectHandler(w http.ResponseWriter, r *http.Req
 	object = vars["object"]
 
 	// Fetch object stat info.
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -226,7 +226,7 @@ func (api objectAPIHandlers) HeadObjectHandler(w http.ResponseWriter, r *http.Re
 	bucket = vars["bucket"]
 	object = vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponseHeadersOnly(w, ErrServerNotInitialized)
 		return
@@ -334,7 +334,8 @@ func (api objectAPIHandlers) CopyObjectHandler(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	dstBucket := vars["bucket"]
 	dstObject := vars["object"]
-	objectAPI := api.ObjectAPI()
+
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -568,7 +569,7 @@ func (api objectAPIHandlers) CopyObjectHandler(w http.ResponseWriter, r *http.Re
 func (api objectAPIHandlers) PutObjectHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "PutObject")
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -668,7 +669,7 @@ func (api objectAPIHandlers) PutObjectHandler(w http.ResponseWriter, r *http.Req
 	case authTypeAnonymous:
 		// http://docs.aws.amazon.com/AmazonS3/latest/dev/using-with-s3-actions.html
 		sourceIP := handlers.GetSourceIP(r)
-		if s3Err = enforceBucketPolicy(ctx, bucket, "s3:PutObject", r.URL.Path, r.Referer(), sourceIP, r.URL.Query()); s3Err != ErrNone {
+		if s3Err = enforceBucketPolicy(ctx, bucket, "s3:PutObject", r.URL.Path, r.Referer(), sourceIP, r.URL.Query(), r); s3Err != ErrNone {
 			writeErrorResponse(w, s3Err, r.URL)
 			return
 		}
@@ -775,7 +776,7 @@ func (api objectAPIHandlers) NewMultipartUploadHandler(w http.ResponseWriter, r 
 	bucket = vars["bucket"]
 	object = vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -861,7 +862,7 @@ func (api objectAPIHandlers) CopyObjectPartHandler(w http.ResponseWriter, r *htt
 	dstBucket := vars["bucket"]
 	dstObject := vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -1057,7 +1058,8 @@ func (api objectAPIHandlers) PutObjectPartHandler(w http.ResponseWriter, r *http
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 	object := vars["object"]
-	objectAPI := api.ObjectAPI()
+
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -1135,7 +1137,7 @@ func (api objectAPIHandlers) PutObjectPartHandler(w http.ResponseWriter, r *http
 	case authTypeAnonymous:
 		// http://docs.aws.amazon.com/AmazonS3/latest/dev/mpuAndPermissions.html
 		if s3Error := enforceBucketPolicy(ctx, bucket, "s3:PutObject", r.URL.Path,
-			r.Referer(), handlers.GetSourceIP(r), r.URL.Query()); s3Error != ErrNone {
+			r.Referer(), handlers.GetSourceIP(r), r.URL.Query(), r); s3Error != ErrNone {
 			writeErrorResponse(w, s3Error, r.URL)
 			return
 		}
@@ -1253,7 +1255,7 @@ func (api objectAPIHandlers) AbortMultipartUploadHandler(w http.ResponseWriter, 
 	bucket := vars["bucket"]
 	object := vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -1291,7 +1293,7 @@ func (api objectAPIHandlers) ListObjectPartsHandler(w http.ResponseWriter, r *ht
 	bucket := vars["bucket"]
 	object := vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -1331,7 +1333,7 @@ func (api objectAPIHandlers) CompleteMultipartUploadHandler(w http.ResponseWrite
 	bucket := vars["bucket"]
 	object := vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -1440,7 +1442,7 @@ func (api objectAPIHandlers) DeleteObjectHandler(w http.ResponseWriter, r *http.
 	bucket := vars["bucket"]
 	object := vars["object"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return

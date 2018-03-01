@@ -141,7 +141,7 @@ func checkRequestAuthType(ctx context.Context, r *http.Request, bucket, policyAc
 			return ErrInternalError
 		}
 		return enforceBucketPolicy(ctx, bucket, policyAction, resource,
-			r.Referer(), handlers.GetSourceIP(r), r.URL.Query())
+			r.Referer(), handlers.GetSourceIP(r), r.URL.Query(), r)
 	}
 
 	// By default return ErrAccessDenied
@@ -154,6 +154,10 @@ func isReqAuthenticatedV2(r *http.Request) (s3Error APIErrorCode) {
 		return doesSignV2Match(r)
 	}
 	return doesPresignV2SignatureMatch(r)
+}
+
+func getRequestAccessKeyId(r *http.Request) (accessKeyId string, err error) {
+	return "", nil
 }
 
 func reqSignatureV4Verify(r *http.Request, region string) (s3Error APIErrorCode) {

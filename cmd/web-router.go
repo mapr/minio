@@ -31,8 +31,8 @@ import (
 
 // webAPI container for Web API.
 type webAPIHandlers struct {
-	ObjectAPI func() ObjectLayer
 	CacheAPI  func() CacheObjectLayer
+	ObjectAPI func(*http.Request) ObjectLayer
 }
 
 // indexHandler - Handler to serve index.html

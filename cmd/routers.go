@@ -22,10 +22,29 @@ import (
 	"github.com/gorilla/mux"
 )
 
-func newObjectLayerFn() (layer ObjectLayer) {
+func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 	globalObjLayerMutex.RLock()
 	layer = globalObjectAPI
 	globalObjLayerMutex.RUnlock()
+
+	// Multi-tenancy enabled - return MaprFSObjects wrapper with correct FS uid ang gid
+	if globalTenantMapper != nil && layer.StorageInfo().Backend.Type == FS {
+		uid, gid, err := globalTenantMapper.MapCredentials(request)
+		if err != nil {
+			// TODO(RostakaGmfun): Add robust error handling:
+			// Some not-authorized error should be propagated
+			// to the HTTP handler and returned to the client.
+			// It would be great to do this without adding second
+			// return value to this function.
+			return
+		}
+
+		return &MapRFSObjects{
+			fsObjects: layer.(*fsObjects),
+			fsUid: uid,
+			fsGid: gid,
+		}
+	}
 	return
 }
 

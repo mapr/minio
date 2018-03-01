@@ -54,7 +54,7 @@ func printStartupMessage(apiEndPoints []string) {
 		printCacheStorageInfo(cacheObjectAPI.StorageInfo(context.Background()))
 	}
 	// Object layer is initialized then print StorageInfo.
-	objAPI := newObjectLayerFn()
+	objAPI := newObjectLayerFn(nil)
 	if objAPI != nil {
 		printStorageInfo(objAPI.StorageInfo(context.Background()))
 	}

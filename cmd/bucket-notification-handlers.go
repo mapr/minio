@@ -43,7 +43,7 @@ var errNoSuchNotifications = errors.New("The specified bucket does not have buck
 func (api objectAPIHandlers) GetBucketNotificationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "GetBucketNotification")
 
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -94,7 +94,7 @@ func (api objectAPIHandlers) GetBucketNotificationHandler(w http.ResponseWriter,
 func (api objectAPIHandlers) PutBucketNotificationHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "PutBucketNotification")
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -157,7 +157,7 @@ func (api objectAPIHandlers) ListenBucketNotificationHandler(w http.ResponseWrit
 	ctx := newContext(r, "ListenBucketNotification")
 
 	// Validate if bucket exists.
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return

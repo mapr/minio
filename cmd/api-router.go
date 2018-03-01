@@ -25,8 +25,8 @@ import (
 
 // objectAPIHandler implements and provides http handlers for S3 API.
 type objectAPIHandlers struct {
-	ObjectAPI func() ObjectLayer
 	CacheAPI  func() CacheObjectLayer
+	ObjectAPI func(*http.Request) ObjectLayer
 }
 
 // registerAPIRouter - registers S3 compatible APIs.

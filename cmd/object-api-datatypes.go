@@ -34,6 +34,9 @@ const (
 	FS
 	// Multi disk Erasure (single, distributed) backend.
 	Erasure
+
+	// MaprFS wrapper around FS to support multitenancy
+	MapRFS
 	// Add your own backend.
 )
 

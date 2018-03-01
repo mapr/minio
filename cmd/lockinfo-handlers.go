@@ -65,3 +65,9 @@ type OpsLockState struct {
 	Status      statusType `json:"status"` // Status can be Running/Ready/Blocked.
 	Since       time.Time  `json:"since"`  // Time when the lock was initially held.
 }
+
+// listLocksInfo - Fetches locks held on bucket, matching prefix held for longer than duration.
+func listLocksInfo(bucket, prefix string, duration time.Duration) []VolumeLockInfo {
+	locksInfo, _ := newObjectLayerFn(nil).ListLocks(context.Background(), bucket, prefix, duration)
+	return locksInfo
+}

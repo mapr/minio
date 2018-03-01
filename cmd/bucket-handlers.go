@@ -40,10 +40,11 @@ import (
 
 // http://docs.aws.amazon.com/AmazonS3/latest/dev/using-with-s3-actions.html
 // Enforces bucket policies for a bucket for a given tatusaction.
-func enforceBucketPolicy(ctx context.Context, bucket, action, resource, referer, sourceIP string, queryParams url.Values) (s3Error APIErrorCode) {
+func enforceBucketPolicy(ctx context.Context, bucket, action, resource, referer, sourceIP string, queryParams url.Values, r *http.Request) (s3Error APIErrorCode) {
 	// Verify if bucket actually exists
-	objAPI := newObjectLayerFn()
-	if err := checkBucketExist(ctx, bucket, objAPI); err != nil {
+	objAPI := newObjectLayerFn(r)
+	if err := checkBucketExist(bucket, objAPI); err != nil {
+		err = errors.Cause(err)
 		switch err.(type) {
 		case BucketNameInvalid:
 			// Return error for invalid bucket name.
@@ -115,7 +116,7 @@ func (api objectAPIHandlers) GetBucketLocationHandler(w http.ResponseWriter, r *
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -174,7 +175,7 @@ func (api objectAPIHandlers) ListMultipartUploadsHandler(w http.ResponseWriter, 
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -218,7 +219,7 @@ func (api objectAPIHandlers) ListMultipartUploadsHandler(w http.ResponseWriter, 
 func (api objectAPIHandlers) ListBucketsHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "ListBuckets")
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -260,7 +261,7 @@ func (api objectAPIHandlers) DeleteMultipleObjectsHandler(w http.ResponseWriter,
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -405,7 +406,7 @@ func (api objectAPIHandlers) DeleteMultipleObjectsHandler(w http.ResponseWriter,
 func (api objectAPIHandlers) PutBucketHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "PutBucket")
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -462,7 +463,7 @@ func (api objectAPIHandlers) PutBucketHandler(w http.ResponseWriter, r *http.Req
 func (api objectAPIHandlers) PostPolicyBucketHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "PostPolicyBucket")
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -684,7 +685,7 @@ func (api objectAPIHandlers) HeadBucketHandler(w http.ResponseWriter, r *http.Re
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponseHeadersOnly(w, ErrServerNotInitialized)
 		return
@@ -710,7 +711,7 @@ func (api objectAPIHandlers) HeadBucketHandler(w http.ResponseWriter, r *http.Re
 func (api objectAPIHandlers) DeleteBucketHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "DeleteBucket")
 
-	objectAPI := api.ObjectAPI()
+	objectAPI := api.ObjectAPI(r)
 	if objectAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return

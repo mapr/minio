@@ -90,7 +90,7 @@ func (s *adminCmd) ReInitFormat(args *ReInitFormatArgs, reply *AuthRPCReply) err
 	if err := args.IsAuthenticated(); err != nil {
 		return err
 	}
-	objectAPI := newObjectLayerFn()
+	objectAPI := newObjectLayerFn(nil)
 	if objectAPI == nil {
 		return errServerNotInitialized
 	}
@@ -125,7 +125,7 @@ func (s *adminCmd) ServerInfoData(args *AuthRPCArgs, reply *ServerInfoDataReply)
 	}
 
 	// Build storage info
-	objLayer := newObjectLayerFn()
+	objLayer := newObjectLayerFn(nil)
 	if objLayer == nil {
 		return errServerNotInitialized
 	}

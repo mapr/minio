@@ -357,7 +357,7 @@ func (a adminAPIHandlers) ClearLocksHandler(w http.ResponseWriter, r *http.Reque
 	ctx := newContext(r, "ClearLocks")
 
 	// Get object layer instance.
-	objLayer := newObjectLayerFn()
+	objLayer := newObjectLayerFn(r)
 	if objLayer == nil {
 		writeErrorResponseJSON(w, ErrServerNotInitialized, r.URL)
 		return
@@ -393,7 +393,6 @@ func (a adminAPIHandlers) ClearLocksHandler(w http.ResponseWriter, r *http.Reque
 		logger.LogIf(ctx, err)
 		return
 	}
-
 	objLayer.ClearLocks(ctx, volLocks)
 
 	// Reply with list of locks cleared, as json.
@@ -465,7 +464,7 @@ func (a adminAPIHandlers) HealHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "Heal")
 
 	// Get object layer instance.
-	objLayer := newObjectLayerFn()
+	objLayer := newObjectLayerFn(r)
 	if objLayer == nil {
 		writeErrorResponseJSON(w, ErrServerNotInitialized, r.URL)
 		return
@@ -575,6 +574,12 @@ func (a adminAPIHandlers) GetConfigHandler(w http.ResponseWriter, r *http.Reques
 		return
 	}
 
+	// check if objectLayer is initialized, if not return.
+	if newObjectLayerFn(r) == nil {
+		writeErrorResponseJSON(w, ErrServerNotInitialized, r.URL)
+		return
+	}
+
 	// Take a read lock on minio/config.json. NB minio is a
 	// reserved bucket name and wouldn't conflict with normal
 	// object operations.
@@ -663,7 +668,7 @@ func (a adminAPIHandlers) SetConfigHandler(w http.ResponseWriter, r *http.Reques
 
 	ctx := context.Background()
 	// Get current object layer instance.
-	objectAPI := newObjectLayerFn()
+	objectAPI := newObjectLayerFn(r)
 	if objectAPI == nil {
 		writeErrorResponseJSON(w, ErrServerNotInitialized, r.URL)
 		return

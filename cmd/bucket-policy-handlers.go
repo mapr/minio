@@ -222,7 +222,7 @@ func bucketPolicyConditionMatch(conditions policy.ConditionKeyMap, statement pol
 func (api objectAPIHandlers) PutBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "PutBucketPolicy")
 
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -302,7 +302,7 @@ func (api objectAPIHandlers) PutBucketPolicyHandler(w http.ResponseWriter, r *ht
 func (api objectAPIHandlers) DeleteBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "DeleteBucketPolicy")
 
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -346,7 +346,7 @@ func (api objectAPIHandlers) DeleteBucketPolicyHandler(w http.ResponseWriter, r 
 func (api objectAPIHandlers) GetBucketPolicyHandler(w http.ResponseWriter, r *http.Request) {
 	ctx := newContext(r, "GetBucketPolicy")
 
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
