@@ -187,7 +187,7 @@ var (
 
 	// TODO(RostakaGmfun): verify that is is safe to access
 	// this variable from newObjecLayerFn without a mutex
-	globalTenantMapper TenantMapper
+	globalTenantManager TenantManager
 
 	// Add new variable global values here.
 

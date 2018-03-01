@@ -587,6 +587,8 @@ func TestListLocksHandler(t *testing.T) {
 	globalMinioAddr = "127.0.0.1:9000"
 	initGlobalAdminPeers(mustGetNewEndpointList("http://127.0.0.1:9000/d1"))
 
+	globalTenantManager, _ = newLocalTenantManager("", 0)
+
 	testCases := []struct {
 		bucket         string
 		prefix         string

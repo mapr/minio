@@ -151,12 +151,10 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	}
 
 	tenantsFile := ctx.String("tenants")
-	if ( tenantsFile != "") {
-		// TODO(RostakaGmfun): Make refresh period either a compile-time constant
-		// or configurable variable
-		globalTenantMapper, err = newLocalTenantMapper(tenantsFile, 60 * 5)
-		errorIf(err, "Failed to intialize multi-tenancy")
-	}
+	// TODO(RostakaGmfun): Make refresh period either a compile-time constant
+	// or configurable variable
+	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
+	errorIf(err, "Failed to intialize multi-tenancy")
 }
 
 func serverHandleEnvVars() {

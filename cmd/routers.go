@@ -27,25 +27,24 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 	layer = globalObjectAPI
 	globalObjLayerMutex.RUnlock()
 
-	// Multi-tenancy enabled - return MaprFSObjects wrapper with correct FS uid ang gid
-	if globalTenantMapper != nil && layer.StorageInfo().Backend.Type == FS {
-		uid, gid, err := globalTenantMapper.MapCredentials(request)
-		if err != nil {
-			// TODO(RostakaGmfun): Add robust error handling:
-			// Some not-authorized error should be propagated
-			// to the HTTP handler and returned to the client.
-			// It would be great to do this without adding second
-			// return value to this function.
-			return
-		}
+	// TODO(RostakaGmfun): Handle error here
+	accessKey, _ := getRequestAccessKeyId(request)
 
-		return &MapRFSObjects{
-			fsObjects: layer.(*fsObjects),
-			fsUid: uid,
-			fsGid: gid,
-		}
+	uid, gid, err := globalTenantManager.GetUidGid(accessKey)
+	if err != nil {
+		// TODO(RostakaGmfun): Add robust error handling:
+		// Some not-authorized error should be propagated
+		// to the HTTP handler and returned to the client.
+		// It would be great to do this without adding second
+		// return value to this function.
+		return layer
 	}
-	return
+
+	return &MapRFSObjects{
+		fsObjects: layer.(*fsObjects),
+		fsUid: uid,
+		fsGid: gid,
+	}
 }
 
 func newCacheObjectsFn() CacheObjectLayer {

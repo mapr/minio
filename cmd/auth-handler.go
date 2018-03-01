@@ -157,7 +157,15 @@ func isReqAuthenticatedV2(r *http.Request) (s3Error APIErrorCode) {
 }
 
 func getRequestAccessKeyId(r *http.Request) (accessKeyId string, err error) {
-	return "", nil
+	if r == nil {
+		return "", errInvalidArgument
+	}
+	if isRequestSignatureV2(r) {
+		accessKey, _ , err := getAuthFromHeaderV2(r)
+		return accessKey, err
+	}
+	accessKey, _ , err := getAuthFromQueryV2(r)
+	return accessKey, err
 }
 
 func reqSignatureV4Verify(r *http.Request, region string) (s3Error APIErrorCode) {
