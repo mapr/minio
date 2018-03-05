@@ -17,7 +17,6 @@ type MapRFSObjects struct {
 	*FSObjects
 	fsUid int /// FS user id which should be used to access the file system
 	fsGid int /// FS group id which should be used to access the file system
-	prevUmask int /// Previous umask value, to be restored in phutdownContext()
 	tenantPrefix string /// Used to prefix buckets in order to allow multiple tenants have buckets with the same name
 }
 
@@ -26,11 +25,9 @@ func (self MapRFSObjects) prepareContext() {
 	// TODO(RostakaGmfun): Implement setfsuid/setfsgid error handling
 	syscall.Setfsuid(self.fsUid)
 	syscall.Setfsgid(self.fsGid)
-	self.prevUmask = syscall.Umask(0007) // TODO(RostakaGmfun): make umask configurable
 }
 
 func (self MapRFSObjects) shutdownContext() {
-	syscall.Umask(self.prevUmask)
 	syscall.Setfsuid(syscall.Geteuid())
 	syscall.Setfsgid(syscall.Getegid())
 	runtime.UnlockOSThread()

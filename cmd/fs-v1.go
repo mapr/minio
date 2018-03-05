@@ -74,6 +74,10 @@ type fsAppendFile struct {
 
 // Initializes meta volume on all the fs path.
 func initMetaVolumeFS(fsPath, fsUUID string) error {
+	// Change umask to 0 temporarliry so that
+	// every tenant could access the meta bucket
+	prevUmask := syscall.Umask(0)
+	defer syscall.Umask(prevUmask)
 	// This happens for the first time, but keep this here since this
 	// is the only place where it can be made less expensive
 	// optimizing all other calls. Create minio meta volume,
