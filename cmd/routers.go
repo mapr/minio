@@ -41,7 +41,7 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 	}
 
 	return &MapRFSObjects{
-		fsObjects: layer.(*fsObjects),
+		FSObjects: layer.(*FSObjects),
 		fsUid: uid,
 		fsGid: gid,
 	}
