@@ -88,6 +88,17 @@ func initMetaVolumeFS(fsPath, fsUUID string) error {
 		return err
 	}
 
+	// TODO(RostakaGmfun): Thoroughly review this solution.
+	// The .minio.sys/buckets dir is created here to make sure it has correct
+	// access rights. Otherwise, this directory will have the rights of
+	// the first tenant which uploaded an object.
+	// A more sophisticated solution would be to create separate minio Meta buckets
+	// per each tenant. This requires a bunch of modifications, though.
+	metaBucketFolderPath := pathJoin(fsPath, minioMetaBucket, bucketMetaPrefix)
+	if err := os.MkdirAll(metaBucketFolderPath, 0777); err != nil {
+		return err
+	}
+
 	metaMultipartPath := pathJoin(fsPath, minioMetaMultipartBucket)
 	return os.MkdirAll(metaMultipartPath, 0777)
 

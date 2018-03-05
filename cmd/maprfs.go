@@ -16,17 +16,21 @@ type MapRFSObjects struct {
 	*FSObjects
 	fsUid int /// FS user id which should be used to access the file system
 	fsGid int /// FS group id which should be used to access the file system
+	prevUmask int /// Previous umask value, to be restored in ShutdownContext()
 }
 
 func (self *MapRFSObjects) PrepareContext() {
 	runtime.LockOSThread()
+	// TODO(RostakaGmfun): Implement setfsuid/setfsgid error handling
 	syscall.Setfsuid(self.fsUid)
 	syscall.Setfsgid(self.fsGid)
-	// TODO(RostakaGmfun): Change fsuid here
+	self.prevUmask = syscall.Umask(0007) // TODO(RostakaGmfun): make umask configurable
 }
 
 func (self *MapRFSObjects) ShutdownContext() {
-	// TODO(RostakaGmfun): Restore fsuid here
+	syscall.Umask(self.prevUmask)
+	syscall.Setfsuid(syscall.Geteuid())
+	syscall.Setfsgid(syscall.Getegid())
 	runtime.UnlockOSThread()
 }
 
