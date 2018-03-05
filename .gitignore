@@ -22,3 +22,6 @@ parts/
 prime/
 stage/
 .sia_temp/
+buildcoveragecoverage.txt
+testenv/.vagrant
+testenv/*.log
