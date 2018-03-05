@@ -6,4 +6,6 @@ type TenantManager interface {
 
 	/// Maps AWS credentials from HTTP request to UNIX uid and gid
 	GetUidGid(accessKey string) (uid int, gid int, err error)
+
+	GetTenantUUID(accessKey string) (tenantUUID string, err error)
 }

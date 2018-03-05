@@ -11,9 +11,10 @@ import (
 )
 
 type TenantInfo struct {
-	uid       int
-	gid       int
+	uid int
+	gid int
 	secretKey string
+	uuid string
 }
 
 /// Implements TenantManager interface by maintaining map of tenants in memory and
@@ -117,15 +118,13 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 	return nil
 }
 
-func (self *LocalTenantManager) addTenant(accessKey string, secretKey string, uid int, gid int) error {
-	self.tenantMapMutex.Lock()
-	defer self.tenantMapMutex.Unlock()
-
-	self.tenantMap[accessKey] = TenantInfo{
-		secretKey: secretKey,
-		uid:       uid,
-		gid:       gid,
+func (self *LocalTenantManager) GetTenantUUID(accessKey string) (string, error) {
+	if _, ok := self.tenantMap[accessKey]; !ok {
+		return "", errInvalidAccessKeyID
 	}
 
-	return nil
+	// NOTE: THIS IS JUST FOR POC
+	// TODO(RostakaGmfun): Make cryptographically secure UUID generator for tenants
+	// and cache the results in the TenantInfo structs inside the tenantMap
+	return accessKey, nil
 }
