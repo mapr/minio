@@ -2,15 +2,17 @@ package cmd
 
 import (
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
+	"strconv"
 	"sync"
-	"time"
 	"syscall"
+	"time"
 )
 
 type TenantInfo struct {
-	uid int
-	gid int
+	uid       int
+	gid       int
 	secretKey string
 }
 
@@ -26,7 +28,7 @@ type LocalTenantManager struct {
 func newLocalTenantManager(tenantFilename string, refreshPeriodSeconds int) (TenantManager, error) {
 
 	localTenantManager := &LocalTenantManager{
-		tenantMap: make(map[string]TenantInfo),
+		tenantMap:      make(map[string]TenantInfo),
 		tenantMapMutex: &sync.RWMutex{},
 	}
 
@@ -92,14 +94,25 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 	var unmarshalled interface{}
 	err = json.Unmarshal(data, &unmarshalled)
 
-	tenants, ok := unmarshalled.(map[string]TenantInfo)
+	tenants := make(map[string]TenantInfo)
 
-	if !ok {
-		// TODO(RostakaGmfun): any error handling here?
-		return errInvalidArgument
+	for accessKey, info := range unmarshalled.(map[string]interface{}) {
+		var tenantInfo TenantInfo
+		for k, v := range info.(map[string]interface{}) {
+			switch k {
+			case "uid":
+				tenantInfo.uid, _ = strconv.Atoi(v.(string))
+			case "gid":
+				tenantInfo.gid, _ = strconv.Atoi(v.(string))
+			case "secretKey":
+				tenantInfo.secretKey = v.(string)
+			}
+		}
+		tenants[accessKey] = tenantInfo
 	}
-
 	self.tenantMap = tenants
+
+	fmt.Println(self.tenantMap)
 
 	return nil
 }
@@ -110,8 +123,8 @@ func (self *LocalTenantManager) addTenant(accessKey string, secretKey string, ui
 
 	self.tenantMap[accessKey] = TenantInfo{
 		secretKey: secretKey,
-		uid: uid,
-		gid: gid,
+		uid:       uid,
+		gid:       gid,
 	}
 
 	return nil
