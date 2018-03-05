@@ -161,10 +161,10 @@ func getRequestAccessKeyId(r *http.Request) (accessKeyId string, err error) {
 		return "", errInvalidArgument
 	}
 	if isRequestSignatureV2(r) {
-		accessKey, _ , err := getAuthFromHeaderV2(r)
+		accessKey, _, err := getAuthFromHeaderV2(r)
 		return accessKey, err
 	}
-	accessKey, _ , err := getAuthFromQueryV2(r)
+	accessKey, _, err := getAuthFromQueryV2(r)
 	return accessKey, err
 }
 

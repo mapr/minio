@@ -211,12 +211,6 @@ func validateV2AuthHeader(v2Auth string) APIErrorCode {
 		return ErrMissingFields
 	}
 
-	// Access credentials.
-	cred := globalServerConfig.GetCredential()
-	if keySignFields[0] != cred.AccessKey {
-		return ErrInvalidAccessKeyID
-	}
-
 	return ErrNone
 }
 
@@ -231,10 +225,10 @@ func doesSignV2Match(r *http.Request) APIErrorCode {
 		accessKey string
 		secretKey string
 		signature string
-		err error
+		err       error
 	)
 
-	if accessKey, _ , err = getAuthFromHeaderV2(r); err != nil {
+	if accessKey, signature, err = getAuthFromHeaderV2(r); err != nil {
 		return ErrInvalidAccessKeyID
 	}
 
@@ -261,6 +255,7 @@ func doesSignV2Match(r *http.Request) APIErrorCode {
 	}
 
 	expectedAuth := signatureV2(r.Method, encodedResource, strings.Join(unescapedQueries, "&"), r.Header, secretKey)
+
 	if !compareSignatureV2(signature, expectedAuth) {
 		return ErrSignatureDoesNotMatch
 	}
