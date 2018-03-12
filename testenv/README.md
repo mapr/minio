@@ -20,13 +20,15 @@ To run minio, execute the following inside the vagrant session:
 
 ```bash
     vagrant up
-    # Run everything as root
-    sudo su
-    mkdir -m 0777 ~/data
-    cd gopath/src/github.com/minio/mino
+    cd gopath/src/github.com/minio/minio
     # Build minio
     go build
-    ./minio server ~/data -T /home/vagrant/tenants.json
+    cp minio /home/vagrant
+    cd /home/vagrant
+    sudo chown root ./minio
+    sudo chmod +s minio
+    mkdir -m 0777 ~/data
+    ./minio server /home/vagrant/data -T /home/vagrant/tenants.json
 ```
 
 Enjoy the endless fun!
