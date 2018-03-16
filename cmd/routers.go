@@ -46,11 +46,18 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		return nil
 	}
 
+	tenantName, err := globalTenantManager.GetTenantName(accessKey)
+	if err != nil {
+		// TODO(RostakaGmfun): error handling
+		return nil
+	}
+
 	return &MapRFSObjects{
 		FSObjects: layer.(*FSObjects),
 		fsUid: uid,
 		fsGid: gid,
 		tenantPrefix: tenantUUID,
+		tenantName: tenantName,
 	}
 }
 

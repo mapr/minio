@@ -8,6 +8,7 @@ import (
 	"sync"
 	"syscall"
 	"time"
+	"github.com/minio/minio-go/pkg/policy"
 )
 
 type TenantInfo struct {
@@ -15,6 +16,7 @@ type TenantInfo struct {
 	gid int
 	secretKey string
 	uuid string
+	name string
 }
 
 /// Implements TenantManager interface by maintaining map of tenants in memory and
@@ -107,6 +109,8 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 				tenantInfo.gid, _ = strconv.Atoi(v.(string))
 			case "secretKey":
 				tenantInfo.secretKey = v.(string)
+			case "name":
+				tenantInfo.name = v.(string)
 			}
 		}
 		tenants[accessKey] = tenantInfo
@@ -119,12 +123,29 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 }
 
 func (self *LocalTenantManager) GetTenantUUID(accessKey string) (string, error) {
+	self.tenantMapMutex.RLock()
 	if _, ok := self.tenantMap[accessKey]; !ok {
 		return "", errInvalidAccessKeyID
 	}
+	self.tenantMapMutex.RUnlock()
 
 	// NOTE: THIS IS JUST FOR POC
 	// TODO(RostakaGmfun): Make cryptographically secure UUID generator for tenants
 	// and cache the results in the TenantInfo structs inside the tenantMap
 	return accessKey, nil
+}
+
+func (self *LocalTenantManager) GetTenantName(accessKey string) (string, error) {
+	self.tenantMapMutex.RLock()
+	tenantInfo, ok := self.tenantMap[accessKey]
+	self.tenantMapMutex.RUnlock()
+	if !ok {
+		return "", errInvalidAccessKeyID
+	}
+
+	return tenantInfo.name, nil
+}
+
+func (self *LocalTenantManager) GetAssociatedBucketPolicies(tenantName string, bucketName string) ([]policy.BucketAccessPolicy, error) {
+	return nil, nil
 }
