@@ -45,7 +45,7 @@ func ReadinessCheckHandler(w http.ResponseWriter, r *http.Request) {
 // Liveness probes are used to detect situations where application (minio)
 // has gone into a state where it can not recover except by being restarted.
 func LivenessCheckHandler(w http.ResponseWriter, r *http.Request) {
-	objLayer := newObjectLayerFn()
+	objLayer := newObjectLayerFn(nil)
 	// Service not initialized yet
 	if objLayer == nil {
 		writeResponse(w, http.StatusServiceUnavailable, nil, mimeNone)

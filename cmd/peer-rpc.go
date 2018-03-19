@@ -54,7 +54,7 @@ type UpdateBucketPolicyArgs struct {
 
 // UpdateBucketPolicy - handles update bucket policy RPC call which sets bucket policies to given bucket in global BucketPolicies object.
 func (receiver *PeerRPCReceiver) UpdateBucketPolicy(args *UpdateBucketPolicyArgs, reply *AuthRPCArgs) error {
-	objectAPI := newObjectLayerFn()
+	objectAPI := newObjectLayerFn(nil)
 	if objectAPI == nil {
 		// If the object layer is just coming up then it will load the policy from the disk.
 		return nil
