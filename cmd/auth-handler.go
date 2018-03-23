@@ -156,15 +156,21 @@ func isReqAuthenticatedV2(r *http.Request) (s3Error APIErrorCode) {
 	return doesPresignV2SignatureMatch(r)
 }
 
-func getRequestAccessKeyId(r *http.Request) (accessKeyId string, err error) {
+func getRequestAccessKeyId(r *http.Request) (accessKeyId string, err APIErrorCode) {
 	if r == nil {
-		return "", errInvalidArgument
+		return "", ErrMissingRequestBodyError
 	}
 	if isRequestSignatureV2(r) {
 		accessKey, _, err := getAuthFromHeaderV2(r)
+		return accessKey, toAPIErrorCode(err)
+	} else if isRequestSignatureV4(r) {
+		accessKey, _, err := getAuthFromHeaderV4(r, globalServerConfig.GetRegion())
 		return accessKey, err
+	} else if isRequestPresignedSignatureV2(r) {
+		accessKey, _, err := getAuthFromQueryV2(r)
+		return accessKey, toAPIErrorCode(err)
 	}
-	accessKey, _, err := getAuthFromQueryV2(r)
+	accessKey, _, err := getAuthFromQueryV4(r, globalServerConfig.GetRegion()) // TODO here should been the function like "getAuthFromQueryV4
 	return accessKey, err
 }
 

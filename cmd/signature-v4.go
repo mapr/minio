@@ -196,9 +196,6 @@ func doesPolicySignatureV4Match(formValues http.Header) APIErrorCode {
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-query-string-auth.html
 // returns ErrNone if the signature matches.
 func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region string) APIErrorCode {
-	// Access credentials.
-	cred := globalServerConfig.GetCredential()
-
 	// Copy request
 	req := *r
 
@@ -208,8 +205,8 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 		return err
 	}
 
-	// Verify if the access key id matches.
-	if pSignValues.Credential.accessKey != cred.AccessKey {
+	secretKey, ret := globalTenantManager.GetSecretKey(pSignValues.Credential.accessKey)
+	if ret != nil {
 		return ErrInvalidAccessKeyID
 	}
 
@@ -244,7 +241,7 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 	query.Set("X-Amz-Date", t.Format(iso8601Format))
 	query.Set("X-Amz-Expires", strconv.Itoa(expireSeconds))
 	query.Set("X-Amz-SignedHeaders", getSignedHeaders(extractedSignedHeaders))
-	query.Set("X-Amz-Credential", cred.AccessKey+"/"+getScope(t, pSignValues.Credential.scope.region))
+	query.Set("X-Amz-Credential", pSignValues.Credential.accessKey+"/"+getScope(t, pSignValues.Credential.scope.region))
 
 	// Save other headers available in the request parameters.
 	for k, v := range req.URL.Query() {
@@ -289,7 +286,7 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 	presignedStringToSign := getStringToSign(presignedCanonicalReq, t, pSignValues.Credential.getScope())
 
 	// Get hmac presigned signing key.
-	presignedSigningKey := getSigningKey(cred.SecretKey, pSignValues.Credential.scope.date, pSignValues.Credential.scope.region)
+	presignedSigningKey := getSigningKey(secretKey, pSignValues.Credential.scope.date, pSignValues.Credential.scope.region)
 
 	// Get new signature.
 	newSignature := getSignature(presignedSigningKey, presignedStringToSign)
@@ -305,9 +302,6 @@ func doesPresignedSignatureMatch(hashedPayload string, r *http.Request, region s
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sig-v4-authenticating-requests.html
 // returns ErrNone if signature matches.
 func doesSignatureMatch(hashedPayload string, r *http.Request, region string) APIErrorCode {
-	// Access credentials.
-	cred := globalServerConfig.GetCredential()
-
 	// Copy request.
 	req := *r
 
@@ -326,8 +320,8 @@ func doesSignatureMatch(hashedPayload string, r *http.Request, region string) AP
 		return errCode
 	}
 
-	// Verify if the access key id matches.
-	if signV4Values.Credential.accessKey != cred.AccessKey {
+	secretKey, ret := globalTenantManager.GetSecretKey(signV4Values.Credential.accessKey)
+	if ret != nil {
 		return ErrInvalidAccessKeyID
 	}
 
@@ -354,7 +348,7 @@ func doesSignatureMatch(hashedPayload string, r *http.Request, region string) AP
 	stringToSign := getStringToSign(canonicalRequest, t, signV4Values.Credential.getScope())
 
 	// Get hmac signing key.
-	signingKey := getSigningKey(cred.SecretKey, signV4Values.Credential.scope.date, signV4Values.Credential.scope.region)
+	signingKey := getSigningKey(secretKey, signV4Values.Credential.scope.date, signV4Values.Credential.scope.region)
 
 	// Calculate signature.
 	newSignature := getSignature(signingKey, stringToSign)
@@ -366,4 +360,25 @@ func doesSignatureMatch(hashedPayload string, r *http.Request, region string) AP
 
 	// Return error none.
 	return ErrNone
+}
+
+func getAuthFromHeaderV4(r *http.Request, region string) (string, string, APIErrorCode) {
+	v4Auth := r.Header.Get("Authorization")
+
+	// Parse signature version '4' header.
+	signV4Values, err := parseSignV4(v4Auth, region)
+	if err != ErrNone {
+		return "", "", err
+	}
+
+	return signV4Values.Credential.accessKey, signV4Values.Signature, ErrNone
+}
+
+func getAuthFromQueryV4(r *http.Request, region string) (string, string, APIErrorCode) {
+	pSignValues, err := parsePreSignV4(r.URL.Query(), region)
+	if err != ErrNone {
+		return "", "", err
+	}
+
+	return pSignValues.Credential.accessKey, pSignValues.Signature, ErrNone
 }
