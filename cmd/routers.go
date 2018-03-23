@@ -40,12 +40,6 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		return layer
 	}
 
-	tenantUUID, err := globalTenantManager.GetTenantUUID(accessKey)
-	if err != nil {
-		// TODO(RostakaGmfun): error handling
-		return nil
-	}
-
 	tenantName, err := globalTenantManager.GetTenantName(accessKey)
 	if err != nil {
 		// TODO(RostakaGmfun): error handling
@@ -56,7 +50,6 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		FSObjects: layer.(*FSObjects),
 		fsUid: uid,
 		fsGid: gid,
-		tenantPrefix: tenantUUID,
 		tenantName: tenantName,
 	}
 }

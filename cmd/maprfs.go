@@ -5,7 +5,6 @@ import (
 	"io"
 	"runtime"
 	"syscall"
-	"strings"
 	"time"
 
 	"github.com/minio/minio-go/pkg/policy"
@@ -18,7 +17,6 @@ type MapRFSObjects struct {
 	*FSObjects
 	fsUid int /// FS user id which should be used to access the file system
 	fsGid int /// FS group id which should be used to access the file system
-	tenantPrefix string /// Used to prefix buckets in order to allow multiple tenants have buckets with the same name
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
 }
 
@@ -56,8 +54,7 @@ func (self MapRFSObjects) shutdownContext() {
 
 /// Retrieve actual bucket name for the current tenant
 func (self MapRFSObjects) getBucketName(bucket string) string {
-	// TODO(RostakaGmfun): Validate tenantPrefix somewhere
-	return self.tenantPrefix + bucket
+	return bucket
 }
 
 func (self MapRFSObjects) Shutdown(ctx context.Context) error {
@@ -85,22 +82,7 @@ func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (buc
 func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo, err error) {
 	self.prepareContext("", "")
 	defer self.shutdownContext()
-	allBuckets, err := self.FSObjects.ListBuckets(ctx)
-
-	var visibleBuckets []BucketInfo
-
-	/// Filter out buckets which don't belong to the current tenant
-	/// and fixup bucket names by removing tenantPrefix
-	for _, bucket := range allBuckets {
-		if strings.HasPrefix(bucket.Name, self.tenantPrefix) {
-			visibleBuckets = append(visibleBuckets, BucketInfo{
-				Name: strings.TrimPrefix(bucket.Name, self.tenantPrefix),
-				Created: bucket.Created,
-			})
-		}
-	}
-
-	return visibleBuckets, err
+	return self.FSObjects.ListBuckets(ctx)
 }
 
 func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error {

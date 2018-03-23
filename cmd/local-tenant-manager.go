@@ -122,19 +122,6 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 	return nil
 }
 
-func (self *LocalTenantManager) GetTenantUUID(accessKey string) (string, error) {
-	self.tenantMapMutex.RLock()
-	if _, ok := self.tenantMap[accessKey]; !ok {
-		return "", errInvalidAccessKeyID
-	}
-	self.tenantMapMutex.RUnlock()
-
-	// NOTE: THIS IS JUST FOR POC
-	// TODO(RostakaGmfun): Make cryptographically secure UUID generator for tenants
-	// and cache the results in the TenantInfo structs inside the tenantMap
-	return accessKey, nil
-}
-
 func (self *LocalTenantManager) GetTenantName(accessKey string) (string, error) {
 	self.tenantMapMutex.RLock()
 	tenantInfo, ok := self.tenantMap[accessKey]

@@ -301,6 +301,11 @@ func (fs *FSObjects) ListBuckets(ctx context.Context) ([]BucketInfo, error) {
 			// Ignore any errors returned here.
 			continue
 		}
+		f, e := os.Open(pathJoin(fs.fsPath, entry))
+		if e != nil {
+			continue;
+		}
+		f.Close()
 		bucketInfos = append(bucketInfos, BucketInfo{
 			Name: fi.Name(),
 			// As os.Stat() doesnt carry CreatedTime, use ModTime() as CreatedTime.
