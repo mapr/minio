@@ -160,8 +160,6 @@ func compareSignatureV4(sig1, sig2 string) bool {
 //     - http://docs.aws.amazon.com/AmazonS3/latest/API/sigv4-HTTPPOSTConstructPolicy.html
 // returns ErrNone if the signature matches.
 func doesPolicySignatureV4Match(formValues http.Header) APIErrorCode {
-	// Access credentials.
-	cred := globalServerConfig.GetCredential()
 
 	// Server region.
 	region := globalServerConfig.GetRegion()
@@ -172,13 +170,13 @@ func doesPolicySignatureV4Match(formValues http.Header) APIErrorCode {
 		return ErrMissingFields
 	}
 
-	// Verify if the access key id matches.
-	if credHeader.accessKey != cred.AccessKey {
+	secretKey, ret := globalTenantManager.GetSecretKey(credHeader.accessKey)
+	if ret != nil {
 		return ErrInvalidAccessKeyID
 	}
 
 	// Get signing key.
-	signingKey := getSigningKey(cred.SecretKey, credHeader.scope.date, credHeader.scope.region)
+	signingKey := getSigningKey(secretKey, credHeader.scope.date, credHeader.scope.region)
 
 	// Get signature.
 	newSignature := getSignature(signingKey, formValues.Get("Policy"))
