@@ -8,7 +8,6 @@ import (
 	"sync"
 	"syscall"
 	"time"
-	"github.com/minio/minio-go/pkg/policy"
 )
 
 type TenantInfo struct {
@@ -84,6 +83,19 @@ func (self LocalTenantManager) GetUidGid(accessKey string) (uid, gid int, err er
 	return 0, 0, errInvalidAccessKeyID
 }
 
+func (self *LocalTenantManager) GetUidGidByName(tenantName string) (uid int, gid int, err error) {
+	self.tenantMapMutex.RLock()
+	defer self.tenantMapMutex.RUnlock()
+
+	for _, tenantInfo := range self.tenantMap {
+		if tenantInfo.name == tenantName {
+			return tenantInfo.uid, tenantInfo.gid, nil
+		}
+	}
+
+	return 0, 0, errInvalidArgument
+}
+
 func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) error {
 	self.tenantMapMutex.Lock()
 	defer self.tenantMapMutex.Unlock()
@@ -131,8 +143,4 @@ func (self *LocalTenantManager) GetTenantName(accessKey string) (string, error) 
 	}
 
 	return tenantInfo.name, nil
-}
-
-func (self *LocalTenantManager) GetAssociatedBucketPolicies(tenantName string, bucketName string) ([]policy.BucketAccessPolicy, error) {
-	return nil, nil
 }

@@ -41,6 +41,11 @@ var serverFlags = []cli.Flag{
 		Value: "",
 		Usage: "Path to tenants mapping file. Supply to enable multi-tenancy.",
 	},
+	cli.StringFlag{
+		Name: "mountpoint, M",
+		Value: "",
+		Usage: "Path to the mount point of MapR-FS used as backend",
+	},
 }
 
 var serverCmd = cli.Command{
@@ -155,6 +160,12 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	// or configurable variable
 	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
 	errorIf(err, "Failed to intialize multi-tenancy")
+
+	globalMapRFSMountPoint = ctx.String("mountpoint")
+	if globalMapRFSMountPoint == "" {
+		err = errInvalidArgument
+	}
+	errorIf(err, "MapR-FS mountpoint should be specified")
 }
 
 func serverHandleEnvVars() {

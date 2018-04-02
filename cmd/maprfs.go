@@ -21,16 +21,7 @@ type MapRFSObjects struct {
 }
 
 func (self MapRFSObjects) evaluateBucketPolicyAction(bucket, policyAction string) (int, int, error) {
-	policies, err := globalTenantManager.GetAssociatedBucketPolicies(self.tenantName, bucket)
-
-	if len(policies) == 0 || err != nil {
-		return self.fsUid, self.fsGid, err
-	}
-
-	// TODO(RostakaGmfun): match policy statements to given (tenant, bucket, action) triple
-	// and retrieve uid/gid of the bucket owner
-
-	return 0, 0, errFileAccessDenied
+	return 0, 0, nil
 }
 
 func (self MapRFSObjects) prepareContext(bucket, policyAction string) error {
@@ -223,7 +214,11 @@ func (self MapRFSObjects) ClearLocks(ctx context.Context, lockInfo []VolumeLockI
 func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, policy policy.BucketAccessPolicy) error {
 	self.prepareContext("", "")
 	defer self.shutdownContext()
-	return self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
+	err := self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
+	if err != nil {
+		return err
+	}
+	return generateAceFromPolicy(policy)
 }
 
 func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy.BucketAccessPolicy, error) {
@@ -241,7 +236,12 @@ func (self MapRFSObjects) RefreshBucketPolicy(ctx context.Context, bucket string
 func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string) error {
 	self.prepareContext("", "")
 	defer self.shutdownContext()
-	return self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	err := self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	if err != nil {
+		return err
+	}
+	policy, err := self.FSObjects.GetBucketPolicy(ctx, bucket)
+	return deleteAce(policy)
 }
 
 func (self MapRFSObjects) IsNotificationSupported() bool {

@@ -1091,7 +1091,12 @@ func (fs *FSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy
 
 // DeleteBucketPolicy deletes all policies on bucket
 func (fs *FSObjects) DeleteBucketPolicy(ctx context.Context, bucket string) error {
-	return persistAndNotifyBucketPolicyChange(ctx, bucket, true, emptyBucketPolicy, fs)
+	err := persistAndNotifyBucketPolicyChange(ctx, bucket, true, emptyBucketPolicy, fs)
+	if err != nil {
+		return err
+	}
+
+	return fs.bucketPolicies.DeleteBucketPolicy(bucket)
 }
 
 // ListObjectsV2 lists all blobs in bucket filtered by prefix

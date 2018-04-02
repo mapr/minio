@@ -189,6 +189,9 @@ var (
 	// this variable from newObjecLayerFn without a mutex
 	globalTenantManager TenantManager
 
+	// TODO(RostakaGmfun): This is a temporary hack - come up with better solution later
+	globalMapRFSMountPoint string
+
 	// Add new variable global values here.
 
 )
