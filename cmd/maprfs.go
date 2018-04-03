@@ -12,6 +12,22 @@ import (
 	"github.com/minio/minio/pkg/madmin"
 )
 
+func seteuid(uid int) error {
+	r1, _, _ := syscall.Syscall(syscall.SYS_SETEUID, uintptr(uid), 0, 0)
+	if r1 != 0 {
+		return errInvalidArgument
+	}
+	return nil
+}
+
+func setegid(gid int) error {
+	r1, _, _ := syscall.Syscall(syscall.SYS_SETEGID, uintptr(gid), 0, 0)
+	if r1 != 0 {
+		return errInvalidArgument
+	}
+	return nil
+}
+
 // MapRFSObjects - Wraps the FSObjects ObjectLayer implementation to add multitenancy support
 type MapRFSObjects struct {
 	*FSObjects
@@ -25,21 +41,19 @@ func (self MapRFSObjects) evaluateBucketPolicyAction(bucket, policyAction string
 }
 
 func (self MapRFSObjects) prepareContext(bucket, policyAction string) error {
-	uid, gid, err := self.evaluateBucketPolicyAction(bucket, policyAction)
-	if err != nil {
-		return err
-	}
-
 	runtime.LockOSThread()
-	// TODO(RostakaGmfun): Implement setfsuid/setfsgid error handling
-	syscall.Setfsuid(uid)
-	syscall.Setfsgid(gid)
+	//syscall.Setfsuid(self.fsUid)
+	//syscall.Setfsgid(self.fsGid)
+	setegid(self.fsGid)
+	seteuid(self.fsUid)
 	return nil
 }
 
 func (self MapRFSObjects) shutdownContext() {
-	syscall.Setfsuid(syscall.Geteuid())
-	syscall.Setfsgid(syscall.Getegid())
+	seteuid(syscall.Geteuid())
+	setegid(syscall.Getegid())
+	//syscall.Setfsuid(syscall.Geteuid())
+	//syscall.Setfsgid(syscall.Getegid())
 	runtime.UnlockOSThread()
 }
 
@@ -61,7 +75,12 @@ func (self MapRFSObjects) StorageInfo(ctx context.Context) StorageInfo {
 func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, location string) error {
 	self.prepareContext(bucket, "s3:PutBucket")
 	defer self.shutdownContext()
-	return self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
+	err := self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
+	if err != nil {
+		return err
+	}
+
+	return ApplyDefaultMapRFSBucketPolicy(bucket)
 }
 
 func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (bucketInfo BucketInfo, err error) {
@@ -218,7 +237,7 @@ func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, po
 	if err != nil {
 		return err
 	}
-	return generateAceFromPolicy(policy)
+	return SetMapRFSBucketPolicy(policy)
 }
 
 func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy.BucketAccessPolicy, error) {
@@ -236,12 +255,15 @@ func (self MapRFSObjects) RefreshBucketPolicy(ctx context.Context, bucket string
 func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string) error {
 	self.prepareContext("", "")
 	defer self.shutdownContext()
-	err := self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	policy, err := self.FSObjects.GetBucketPolicy(ctx, bucket)
 	if err != nil {
 		return err
 	}
-	policy, err := self.FSObjects.GetBucketPolicy(ctx, bucket)
-	return deleteAce(policy)
+	err = self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	if err != nil {
+		return err
+	}
+	return RemoveMapRFSBucketPolicy(bucket, policy)
 }
 
 func (self MapRFSObjects) IsNotificationSupported() bool {

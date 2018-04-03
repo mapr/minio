@@ -192,6 +192,9 @@ var (
 	// TODO(RostakaGmfun): This is a temporary hack - come up with better solution later
 	globalMapRFSMountPoint string
 
+	// TODO(RostakaGmfun): This is a temporary hack - come up with better solution later
+	globalDefaultBucketPolicy string
+
 	// Add new variable global values here.
 
 )

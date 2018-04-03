@@ -123,7 +123,7 @@ func fsMkdir(ctx context.Context, dirPath string) (err error) {
 		return err
 	}
 
-	if err = os.Mkdir((dirPath), 0770); err != nil {
+	if err = os.Mkdir((dirPath), GetDefaultMapRFSPolicyBits()); err != nil {
 		if os.IsExist(err) {
 			logger.LogIf(ctx, errVolumeExists)
 			return errVolumeExists

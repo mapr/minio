@@ -42,9 +42,14 @@ var serverFlags = []cli.Flag{
 		Usage: "Path to tenants mapping file. Supply to enable multi-tenancy.",
 	},
 	cli.StringFlag{
-		Name: "mountpoint, M",
+		Name: "mount-point, M",
 		Value: "",
 		Usage: "Path to the mount point of MapR-FS used as backend",
+	},
+	cli.StringFlag{
+		Name: "default-bucket-policy, B",
+		Value: "",
+		Usage: "Defaul bucket policy applied on bucket creation: private, public-r, public-rw",
 	},
 }
 
@@ -161,11 +166,20 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
 	errorIf(err, "Failed to intialize multi-tenancy")
 
-	globalMapRFSMountPoint = ctx.String("mountpoint")
+	globalMapRFSMountPoint = ctx.String("mount-point")
 	if globalMapRFSMountPoint == "" {
 		err = errInvalidArgument
 	}
 	errorIf(err, "MapR-FS mountpoint should be specified")
+
+	globalDefaultBucketPolicy = ctx.String("default-bucket-policy")
+	if globalDefaultBucketPolicy == "" {
+		globalDefaultBucketPolicy = "private"
+	}
+	if !IsSupportedDefaultBucketPolicy(globalDefaultBucketPolicy) {
+		err = errInvalidArgument
+	}
+	errorIf(err, "Unsupported default bucket policy: " + globalDefaultBucketPolicy)
 }
 
 func serverHandleEnvVars() {

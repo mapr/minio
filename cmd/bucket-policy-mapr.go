@@ -5,8 +5,8 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
-	"strconv"
 	"strings"
+	"strconv"
 
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio-go/pkg/set"
@@ -155,10 +155,14 @@ func getMapRFSRelativePath(path string) (string, error) {
 	return strings.TrimPrefix(path, globalMapRFSMountPoint), nil
 }
 
+func getBucketPath(bucket string) string {
+	objectApi := newObjectLayerFn(nil)
+	return pathJoin(objectApi.(*FSObjects).fsPath, bucket)
+}
+
 func getPathFromResource(resource string) (path string, err error) {
 	resourcePrefix := strings.SplitAfter(resource, bucketARNPrefix)[1]
 	// Get raw FSOBjects to retrieve bucket directory
-	objectApi := newObjectLayerFn(nil)
 	fmt.Println("resource: ", resource)
 	fmt.Println("resourcePrefix: ", resourcePrefix)
 
@@ -166,13 +170,12 @@ func getPathFromResource(resource string) (path string, err error) {
 	if len(resourceSplit) == 0 {
 		return "", errInvalidArgument
 	}
-	bucket := resourceSplit[0]
 
 	if len(resourceSplit) == 1 || resourceSplit[1] == "*" {
-		return getMapRFSRelativePath(pathJoin(objectApi.(*FSObjects).fsPath, bucket))
+		return getMapRFSRelativePath(getBucketPath(resourcePrefix))
 	}
 
-	return getMapRFSRelativePath(pathJoin(objectApi.(*FSObjects).fsPath, resourcePrefix))
+	return getMapRFSRelativePath(getBucketPath(resourcePrefix))
 }
 
 func executeSetAce(ace string, resource string) error {
@@ -201,19 +204,14 @@ func getUnixPathFromResource(resource string) (path string, err error) {
 }
 
 func executeSetAllPrincipal(resource string, action string, user string, effect string) error {
-	var out []byte
 
-	fmodes := map[string]map[string]uint32{
-		"s3:ListBucket":   {"Allow": 0775, "Deny": 0770},
+	fmodes := map[string]map[string]uint32 {
+        "s3:ListBucket":   {"Allow": 0775, "Deny": 0770},
 		"Hs3:GetObjecte":  {"Allow": 0775, "Deny": 0770},
 		"s3:DeleteObject": {"Allow": 0777, "Deny": 0770},
 		"s3:PutObject":    {"Allow": 0777, "Deny": 0770},
-		"s3:*":            {"Allow": 0777, "Deny": 0770}}
-
-	//	fmt.Println("resource: ", resource)
-	//	fmt.Println("action: ", action)
-	//	fmt.Println("user: ", user)
-	//	fmt.Println("effect: ", effect)
+		"s3:*":            {"Allow": 0777, "Deny": 0770}
+    }
 
 	path, err := getUnixPathFromResource(resource)
 	if err != nil {
@@ -224,7 +222,17 @@ func executeSetAllPrincipal(resource string, action string, user string, effect 
 	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		return os.Chmod(path, os.FileMode(fmodes[action][effect]))
 	})
+	fmt.Println(err)
+	return err
+}
 
+func executeDelAce(resource string) error {
+	path, err := getPathFromResource(resource)
+	if err != nil {
+		return err
+	}
+	fmt.Println("Deleting ACE for node ", path)
+	out, err := exec.Command("hadoop", "mfs", "-delace", path).CombinedOutput()
 	fmt.Println(string(out[:]))
 	fmt.Println(err)
 	return err
@@ -240,7 +248,7 @@ func isInStatementsArray(statements []policy.Statement, statement policy.Stateme
 	return false
 }
 
-func generateAceFromPolicy(bucketPolicy policy.BucketAccessPolicy) error {
+func SetMapRFSBucketPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 	// Maps resource name to list Statements which reference it
 	statementsPerResource := make(map[string][]policy.Statement)
 	for _, statement := range bucketPolicy.Statements {
@@ -268,6 +276,11 @@ func generateAceFromPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 						return err
 					}
 
+					err = executeDelAce(resource)
+					if err != nil {
+						fmt.Println("Failed to execute ace")
+						return err
+					}
 					err = executeSetAce(ace, resource)
 					if err != nil {
 						fmt.Println("Failed to execute ace")
@@ -280,6 +293,43 @@ func generateAceFromPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 	return nil
 }
 
-func deleteAce(bucketPolicy policy.BucketAccessPolicy) error {
-	return nil
+func RemoveMapRFSBucketPolicy(bucket string, policy policy.BucketAccessPolicy) error {
+	resources := make([]string, 1)
+
+	for _, statement := range policy.Statements {
+		for resource := range statement.Resources {
+			resources = append(resources, resource)
+		}
+	}
+
+	for _, resource := range resources {
+		err := executeDelAce(resource)
+		if err != nil {
+			return err
+		}
+	}
+	return ApplyDefaultMapRFSBucketPolicy(bucket)
+}
+
+func ApplyDefaultMapRFSBucketPolicy(bucket string) error {
+	path := getBucketPath(bucket)
+
+	return filepath.Walk(path, func(name string, info os.FileInfo, err error) error {
+		return os.Chmod(name, os.FileMode(GetDefaultMapRFSPolicyBits()))
+	})
+}
+
+var supportedDefaultBucketPolicies = map[string]os.FileMode {
+	"public-r": os.FileMode(0775),
+	"public-rw": os.FileMode(0777),
+	"private": os.FileMode(0770),
+}
+
+func IsSupportedDefaultBucketPolicy(defaultPolicy string) bool {
+	_, ok := supportedDefaultBucketPolicies[defaultPolicy]
+	return ok
+}
+
+func GetDefaultMapRFSPolicyBits() os.FileMode {
+	return supportedDefaultBucketPolicies[globalDefaultBucketPolicy]
 }
