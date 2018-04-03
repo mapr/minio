@@ -2,28 +2,31 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 	"os/exec"
-	"strings"
+	"path/filepath"
 	"strconv"
+	"strings"
+
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio-go/pkg/set"
 )
 
 type MapRAce struct {
 	lookupdirAllowedUsers set.StringSet
-	lookupdirDeniedUsers set.StringSet
+	lookupdirDeniedUsers  set.StringSet
 
 	readdirAllowedUsers set.StringSet
-	readdirDeniedUsers set.StringSet
+	readdirDeniedUsers  set.StringSet
 
 	readfileAllowedUsers set.StringSet
-	readfileDeniedUsers set.StringSet
+	readfileDeniedUsers  set.StringSet
 
 	writefileAllowedUsers set.StringSet
-	writefileDeniedUsers set.StringSet
+	writefileDeniedUsers  set.StringSet
 }
 
-func newMapRAce() (MapRAce) {
+func newMapRAce() MapRAce {
 	var maprAce MapRAce
 	maprAce.lookupdirAllowedUsers = make(set.StringSet)
 	maprAce.lookupdirDeniedUsers = make(set.StringSet)
@@ -85,7 +88,7 @@ func compileAce(ace MapRAce) (string, error) {
 	}
 	lookupdirAce = "ld:" + lookupdirAce
 
-	readdirAce , err := compileSingleAce(ace.readdirAllowedUsers.ToSlice(), ace.readdirDeniedUsers.ToSlice())
+	readdirAce, err := compileSingleAce(ace.readdirAllowedUsers.ToSlice(), ace.readdirDeniedUsers.ToSlice())
 	if err != nil {
 		return "", err
 	}
@@ -106,7 +109,7 @@ func compileAce(ace MapRAce) (string, error) {
 	return strings.Join([]string{lookupdirAce, readdirAce, readfileAce, writefileAce}, ","), nil
 }
 
-func processPolicyAction(action string, user string, effect string) (MapRAce){
+func processPolicyAction(action string, user string, effect string) MapRAce {
 	ace := newMapRAce()
 	switch action {
 	case "s3:ListBucket":
@@ -184,9 +187,52 @@ func executeSetAce(ace string, resource string) error {
 	return err
 }
 
+func getUnixPathFromResource(resource string) (path string, err error) {
+	resourcePrefix := strings.SplitAfter(resource, bucketARNPrefix)[1]
+	objectApi := newObjectLayerFn(nil)
+
+	resourceSplit := strings.Split(resourcePrefix, "/")
+	if len(resourceSplit) == 0 {
+		return "", errInvalidArgument
+	}
+
+	bucket := resourceSplit[0]
+	return pathJoin(objectApi.(*FSObjects).fsPath, bucket), nil
+}
+
+func executeSetAllPrincipal(resource string, action string, user string, effect string) error {
+	var out []byte
+
+	fmodes := map[string]map[string]uint32{
+		"s3:ListBucket":   {"Allow": 0775, "Deny": 0770},
+		"Hs3:GetObjecte":  {"Allow": 0775, "Deny": 0770},
+		"s3:DeleteObject": {"Allow": 0777, "Deny": 0770},
+		"s3:PutObject":    {"Allow": 0777, "Deny": 0770},
+		"s3:*":            {"Allow": 0777, "Deny": 0770}}
+
+	//	fmt.Println("resource: ", resource)
+	//	fmt.Println("action: ", action)
+	//	fmt.Println("user: ", user)
+	//	fmt.Println("effect: ", effect)
+
+	path, err := getUnixPathFromResource(resource)
+	if err != nil {
+		return err
+	}
+	fmt.Println("path: ", path)
+
+	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
+		return os.Chmod(path, os.FileMode(fmodes[action][effect]))
+	})
+
+	fmt.Println(string(out[:]))
+	fmt.Println(err)
+	return err
+}
+
 func isInStatementsArray(statements []policy.Statement, statement policy.Statement) bool {
 	for _, s := range statements {
-		if  s.Sid == statement.Sid {
+		if s.Sid == statement.Sid {
 			return true
 		}
 	}
@@ -209,6 +255,11 @@ func generateAceFromPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 		for _, statement := range statements {
 			for action := range statement.Actions {
 				for principal := range statement.Principal.AWS {
+
+					if principal == "*" {
+						return executeSetAllPrincipal(resource, action, principal, statement.Effect)
+					}
+
 					maprAce := processPolicyAction(action, principal, statement.Effect)
 
 					ace, err := compileAce(maprAce)
