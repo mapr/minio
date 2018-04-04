@@ -24,6 +24,12 @@ type MapRAce struct {
 
 	writefileAllowedUsers set.StringSet
 	writefileDeniedUsers  set.StringSet
+
+	addchildAllowedUsers set.StringSet
+	addchildDeniedUsers  set.StringSet
+
+	deletechildAllowedUsers set.StringSet
+	deletechildDeniedUsers  set.StringSet
 }
 
 func newMapRAce() MapRAce {
@@ -109,14 +115,14 @@ func compileAce(ace MapRAce) (string, error) {
 	return strings.Join([]string{lookupdirAce, readdirAce, readfileAce, writefileAce}, ","), nil
 }
 
-func processPolicyAction(action string, user string, effect string) MapRAce {
+func policyActionToAce(action string, user string, effect string) MapRAce {
 	ace := newMapRAce()
 	switch action {
 	case "s3:ListBucket":
 		if effect == "Allow" {
-			ace.lookupdirAllowedUsers.Add(user)
+			ace.readdirAllowedUsers.Add(user)
 		} else {
-			ace.lookupdirDeniedUsers.Add(user)
+			ace.readdirDeniedUsers.Add(user)
 		}
 	case "s3:GetObject":
 		if effect == "Allow" {
@@ -127,18 +133,24 @@ func processPolicyAction(action string, user string, effect string) MapRAce {
 			ace.readfileDeniedUsers.Add(user)
 		}
 	case "s3:DeleteObject":
-		fallthrough
+		if effect == "Allow" {
+			ace.readdirAllowedUsers.Add(user)
+			ace.deletechildAllowedUsers.Add(user)
+		} else {
+			ace.readdirDeniedUsers.Add(user)
+			ace.deletechildDeniedUsers.Add(user)
+		}
 	case "s3:PutObject":
 		if effect == "Allow" {
 			ace.lookupdirAllowedUsers.Add(user)
 			ace.readdirAllowedUsers.Add(user)
-			ace.readfileAllowedUsers.Add(user)
 			ace.writefileAllowedUsers.Add(user)
+			ace.addchildAllowedUsers.Add(user)
 		} else {
 			ace.lookupdirDeniedUsers.Add(user)
 			ace.readdirDeniedUsers.Add(user)
-			ace.readfileDeniedUsers.Add(user)
 			ace.writefileDeniedUsers.Add(user)
+			ace.addchildDeniedUsers.Add(user)
 		}
 	}
 
@@ -172,7 +184,7 @@ func getPathFromResource(resource string) (path string, err error) {
 	}
 
 	if len(resourceSplit) == 1 || resourceSplit[1] == "*" {
-		return getMapRFSRelativePath(getBucketPath(resourcePrefix))
+		return getMapRFSRelativePath(getBucketPath(resourceSplit[0]))
 	}
 
 	return getMapRFSRelativePath(getBucketPath(resourcePrefix))
@@ -210,14 +222,18 @@ func executeSetAllPrincipal(resource string, action string, user string, effect 
 		"Hs3:GetObjecte":  {"Allow": 0775, "Deny": 0770},
 		"s3:DeleteObject": {"Allow": 0777, "Deny": 0770},
 		"s3:PutObject":    {"Allow": 0777, "Deny": 0770},
-		"s3:*":            {"Allow": 0777, "Deny": 0770}
-    }
+		"s3:*":            {"Allow": 0777, "Deny": 0770}}
 
 	path, err := getUnixPathFromResource(resource)
 	if err != nil {
 		return err
 	}
 	fmt.Println("path: ", path)
+
+	err = executeDelAce(resource)
+	if err != nil {
+		return err
+	}
 
 	err = filepath.Walk(path, func(path string, info os.FileInfo, err error) error {
 		return os.Chmod(path, os.FileMode(fmodes[action][effect]))
@@ -232,7 +248,7 @@ func executeDelAce(resource string) error {
 		return err
 	}
 	fmt.Println("Deleting ACE for node ", path)
-	out, err := exec.Command("hadoop", "mfs", "-delace", path).CombinedOutput()
+	out, err := exec.Command("hadoop", "mfs", "-delace", "-R", path).CombinedOutput()
 	fmt.Println(string(out[:]))
 	fmt.Println(err)
 	return err
@@ -246,6 +262,33 @@ func isInStatementsArray(statements []policy.Statement, statement policy.Stateme
 	}
 
 	return false
+}
+
+func processPolicyAction(resource string, action string, principal string, effect string) error {
+	if principal == "*" {
+		return executeSetAllPrincipal(resource, action, principal, effect)
+	}
+
+	maprAce := policyActionToAce(action, principal, effect)
+
+	ace, err := compileAce(maprAce)
+	if err != nil {
+		fmt.Println("Failed to compile ace")
+		return err
+	}
+
+	err = executeDelAce(resource)
+	if err != nil {
+		fmt.Println("Failed to execute ace")
+		return err
+	}
+	err = executeSetAce(ace, resource)
+	if err != nil {
+		fmt.Println("Failed to execute ace")
+		return err
+	}
+
+	return nil
 }
 
 func SetMapRFSBucketPolicy(bucketPolicy policy.BucketAccessPolicy) error {
@@ -263,27 +306,8 @@ func SetMapRFSBucketPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 		for _, statement := range statements {
 			for action := range statement.Actions {
 				for principal := range statement.Principal.AWS {
-
-					if principal == "*" {
-						return executeSetAllPrincipal(resource, action, principal, statement.Effect)
-					}
-
-					maprAce := processPolicyAction(action, principal, statement.Effect)
-
-					ace, err := compileAce(maprAce)
+					err := processPolicyAction(resource, action, principal, statement.Effect)
 					if err != nil {
-						fmt.Println("Failed to compile ace")
-						return err
-					}
-
-					err = executeDelAce(resource)
-					if err != nil {
-						fmt.Println("Failed to execute ace")
-						return err
-					}
-					err = executeSetAce(ace, resource)
-					if err != nil {
-						fmt.Println("Failed to execute ace")
 						return err
 					}
 				}
