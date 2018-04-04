@@ -13,7 +13,6 @@ import (
 	"github.com/minio/minio/pkg/hash"
 	"github.com/minio/minio/pkg/madmin"
 	"github.com/minio/minio-go/pkg/policy"
-	"github.com/minio/minio-go/pkg/set"
 )
 
 // MapRFSObjects - Wraps the FSObjects ObjectLayer implementation to add multitenancy support
@@ -24,10 +23,19 @@ type MapRFSObjects struct {
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
 }
 
-func isResourceReferenced(bucket, object string, resources set.StringSet) bool {
+func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
 	resourceString := "arn:aws:s3:::" + bucket + "/" + object
 	resourceString = strings.TrimSuffix(resourceString, "/")
-	return resources.Contains(resourceString) || resources.Contains("arn:aws:s3:::" + bucket + "/*")
+	return statement.Resources.Contains(resourceString) ||
+		statement.Resources.Contains("arn:aws:s3:::" + bucket + "/*")
+}
+
+func matchPolicyTenant(tenantName string, statement policy.Statement) bool {
+	return statement.Principal.AWS.Contains(tenantName) || statement.Principal.AWS.Contains("*")
+}
+
+func matchPolicyAction(action string, statement policy.Statement) bool {
+	return statement.Actions.Contains(action)
 }
 
 func (self MapRFSObjects) getBucketOwner(bucket string) (uid int, gid int) {
@@ -43,10 +51,12 @@ func (self MapRFSObjects) getBucketOwner(bucket string) (uid int, gid int) {
 }
 
 func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (uid int, gid int) {
+	fmt.Println("eval bucket policy: ", policy)
 	for _, statement := range policy.Statements {
-		if statement.Principal.AWS.Contains(self.tenantName) &&
-			statement.Actions.Contains(action) &&
-			isResourceReferenced(bucket, object, statement.Resources) {
+		if statement.Effect == "Allow" &&
+			matchPolicyTenant(self.tenantName, statement) &&
+			matchPolicyAction(action, statement) &&
+			matchPolicyResource(bucket, object, statement) {
 				return self.getBucketOwner(bucket)
 			}
 	}
