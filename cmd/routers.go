@@ -48,8 +48,8 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 
 	return &MapRFSObjects{
 		FSObjects: layer.(*FSObjects),
-		fsUid: uid,
-		fsGid: gid,
+		uid: uid,
+		gid: gid,
 		tenantName: tenantName,
 	}
 }
