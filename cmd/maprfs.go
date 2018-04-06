@@ -70,33 +70,15 @@ func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
 	uid, gid := self.evaluateBucketPolicy(bucket, object, policy, action)
 
 	runtime.LockOSThread()
-	err := syscall.Setresgid(-1, gid, -1)
-	if err != nil {
-		return err
-	}
-
-	err = syscall.Setresuid(-1, uid, -1)
-	if err != nil {
-		return err
-	}
-
-	fmt.Println("euid: ", syscall.Geteuid())
+	syscall.Setfsgid(gid)
+	syscall.Setfsuid(uid)
 
 	return nil
 }
 
 func (self MapRFSObjects) shutdownContext() error {
-	err := syscall.Setresgid(-1, 0, -1)
-	if err != nil {
-		runtime.UnlockOSThread()
-		return err
-	}
-
-	err = syscall.Setresuid(-1, 0, -1)
-	if err != nil {
-		runtime.UnlockOSThread()
-		return err
-	}
+	syscall.Setfsuid(syscall.Geteuid())
+	syscall.Setfsgid(syscall.Getegid())
 	runtime.UnlockOSThread()
 	return nil
 }
@@ -129,8 +111,8 @@ func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (buc
 }
 
 func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo, err error) {
-	self.prepareContext("", "", "")
-	defer self.shutdownContext()
+	//self.prepareContext("", "", "")
+	//defer self.shutdownContext()
 	return self.FSObjects.ListBuckets(ctx)
 }
 
