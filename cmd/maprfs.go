@@ -111,8 +111,7 @@ func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (buc
 }
 
 func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo, err error) {
-	//self.prepareContext("", "", "")
-	//defer self.shutdownContext()
+	// No need to perform impersonation as all buckets are visiblae to all tenants
 	return self.FSObjects.ListBuckets(ctx)
 }
 
@@ -123,14 +122,34 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 }
 
 func (self MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (result ListObjectsInfo, err error) {
-	self.prepareContext(bucket, "", "s3:ListBucket")
+	self.prepareContext(bucket, "", "s3:ListObjects")
 	defer self.shutdownContext()
+
+	// Temporary hack to handle access denied for ListObjects,
+	// since tree walk in fs-v1 is done in the context of another thread.
+	// TODO(RostakaGmfun): either rewrite fs-v1.ListObjects
+	// or update treeWalk to use fs impersonation.
+	f, err := os.Open(getBucketPath(bucket))
+	if err != nil {
+		return result, PrefixAccessDenied{}
+	}
+	f.Close()
 	return self.FSObjects.ListObjects(ctx, self.getBucketName(bucket), prefix, marker, delimiter, maxKeys)
 }
 
 func (self MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, continuationToken, delimiter string, maxKeys int, fetchOwner bool, startAfter string) (result ListObjectsV2Info, err error) {
-	self.prepareContext(bucket, "", "s3:ListBucket")
+	self.prepareContext(bucket, "", "s3:ListObjects")
 	defer self.shutdownContext()
+
+	// Temporary hack to handle access denied for ListObjects,
+	// since tree walk in fs-v1 is done in the context of another thread.
+	// TODO(RostakaGmfun): either rewrite fs-v1.ListObjects
+	// or update treeWalk to use fs impersonation.
+	f, err := os.Open(getBucketPath(bucket))
+	if err != nil {
+		return result, PrefixAccessDenied{}
+	}
+	f.Close()
 	return self.FSObjects.ListObjectsV2(ctx, self.getBucketName(bucket), prefix, continuationToken, delimiter, maxKeys, fetchOwner, startAfter)
 }
 
