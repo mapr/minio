@@ -115,8 +115,7 @@ func compileAce(ace MapRAce) (string, error) {
 	return strings.Join([]string{lookupdirAce, readdirAce, readfileAce, writefileAce}, ","), nil
 }
 
-func policyActionToAce(action string, user string, effect string) MapRAce {
-	ace := newMapRAce()
+func policyActionToAce(action string, user string, effect string, ace MapRAce) MapRAce {
 	switch action {
 	case "s3:ListBucket":
 		if effect == "Allow" {
@@ -196,7 +195,7 @@ func executeSetAce(ace string, resource string) error {
 		return err
 	}
 	fmt.Println("Setting ACE ", ace, " for node ", path)
-	out, err := exec.Command("hadoop", "mfs", "-setace", "-R", "-aces", ace, path).CombinedOutput()
+	out, err := exec.Command("hadoop", "mfs", "-setace", "-R", "-aces", ace, path, "-preservemodebits", "true").CombinedOutput()
 	fmt.Println(string(out[:]))
 	fmt.Println(err)
 	return err
@@ -264,12 +263,17 @@ func isInStatementsArray(statements []policy.Statement, statement policy.Stateme
 	return false
 }
 
-func processPolicyAction(resource string, action string, principal string, effect string) error {
-	if principal == "*" {
-		return executeSetAllPrincipal(resource, action, principal, effect)
-	}
+func processPolicyStatement(resource string, actions set.StringSet, principals set.StringSet, effect string) error {
 
-	maprAce := policyActionToAce(action, principal, effect)
+	maprAce := newMapRAce()
+	for action := range actions {
+		for tenant := range principals {
+			if tenant == "*" {
+				return executeSetAllPrincipal(resource, action, tenant, effect)
+			}
+			maprAce = policyActionToAce(action, tenant, effect, maprAce)
+		}
+	}
 
 	ace, err := compileAce(maprAce)
 	if err != nil {
@@ -304,13 +308,9 @@ func SetMapRFSBucketPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 
 	for resource, statements := range statementsPerResource {
 		for _, statement := range statements {
-			for action := range statement.Actions {
-				for principal := range statement.Principal.AWS {
-					err := processPolicyAction(resource, action, principal, statement.Effect)
-					if err != nil {
-						return err
-					}
-				}
+			err := processPolicyStatement(resource, statement.Actions, statement.Principal.AWS, statement.Effect)
+			if err != nil {
+				return err
 			}
 		}
 	}
