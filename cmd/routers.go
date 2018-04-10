@@ -51,6 +51,8 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		uid: uid,
 		gid: gid,
 		tenantName: tenantName,
+		withMaprAce: globalWithMaprAce,
+		defaultBucketPolicy: globalDefaultBucketPolicy,
 	}
 }
 

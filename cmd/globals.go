@@ -189,11 +189,14 @@ var (
 	// this variable from newObjecLayerFn without a mutex
 	globalTenantManager TenantManager
 
-	// TODO(RostakaGmfun): This is a temporary hack - come up with better solution later
+	// Path to the top-level MapR-FS directory - required for MapR ACE functionality
 	globalMapRFSMountPoint string
 
-	// TODO(RostakaGmfun): This is a temporary hack - come up with better solution later
+	// Name fo the default policy applied to the bucket
 	globalDefaultBucketPolicy string
+
+	// True if
+	globalWithMaprAce bool
 
 	// Add new variable global values here.
 

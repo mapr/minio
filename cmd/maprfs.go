@@ -21,6 +21,8 @@ type MapRFSObjects struct {
 	uid int /// FS user id which should be used to access the file system
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
+	withMaprAce bool /// True if MapR ACE modification is enabled according to bucket policy
+	defaultBucketPolicy string
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -101,7 +103,16 @@ func (self MapRFSObjects) StorageInfo(ctx context.Context) StorageInfo {
 func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, location string) error {
 	self.prepareContext(bucket, "", "s3:PutBucket")
 	defer self.shutdownContext()
-	return self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
+	err := self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
+	if err != nil {
+		return err
+	}
+
+	if self.withMaprAce {
+		return ApplyDefaultMapRFSBucketPolicy(bucket)
+	} else {
+		return err
+	}
 }
 
 func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (bucketInfo BucketInfo, err error) {
@@ -122,7 +133,7 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 }
 
 func (self MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (result ListObjectsInfo, err error) {
-	self.prepareContext(bucket, "", "s3:ListObjects")
+	self.prepareContext(bucket, "", "s3:ListBucket")
 	defer self.shutdownContext()
 
 	// Temporary hack to handle access denied for ListObjects,
@@ -273,7 +284,16 @@ func (self MapRFSObjects) ClearLocks(ctx context.Context, lockInfo []VolumeLockI
 func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, policy policy.BucketAccessPolicy) error {
 	self.prepareContext(bucket, "", "s3:PutBucketPolicy")
 	defer self.shutdownContext()
-	return self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
+	err := self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
+	if err != nil {
+		return err
+	}
+
+	if self.withMaprAce {
+		return SetMapRFSBucketPolicy(policy)
+	} else {
+		return err
+	}
 }
 
 func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy.BucketAccessPolicy, error) {
@@ -291,7 +311,16 @@ func (self MapRFSObjects) RefreshBucketPolicy(ctx context.Context, bucket string
 func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string) error {
 	self.prepareContext(bucket, "", "s3:DeleteBucketPolicy")
 	defer self.shutdownContext()
-	return self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	err := self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	if err != nil {
+		return err
+	}
+
+	if self.withMaprAce {
+		return RemoveMapRFSBucketPolicy(bucket, self.FSObjects.bucketPolicies.GetBucketPolicy(bucket))
+	} else {
+		return err
+	}
 }
 
 func (self MapRFSObjects) IsNotificationSupported() bool {

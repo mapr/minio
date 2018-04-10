@@ -51,6 +51,10 @@ var serverFlags = []cli.Flag{
 		Value: "",
 		Usage: "Defaul bucket policy applied on bucket creation: private, public-r, public-rw",
 	},
+	cli.BoolFlag{
+		Name: "with-mapr-ace",
+		Usage: "Modify MapR ACE according to bucket policies",
+	},
 }
 
 var serverCmd = cli.Command{
@@ -170,7 +174,10 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	if globalMapRFSMountPoint == "" {
 		err = errInvalidArgument
 	}
-	errorIf(err, "MapR-FS mountpoint should be specified")
+	globalWithMaprAce := ctx.Bool("with-mapr-ace")
+	if globalWithMaprAce {
+		errorIf(err, "MapR-FS mountpoint should be specified")
+	}
 
 	globalDefaultBucketPolicy = ctx.String("default-bucket-policy")
 	if globalDefaultBucketPolicy == "" {

@@ -219,7 +219,7 @@ func executeSetAllPrincipal(resource string, action string, user string, effect 
 
 	fmodes := map[string]map[string]uint32 {
         "s3:ListBucket":   {"Allow": 0775, "Deny": 0770},
-		"Hs3:GetObjecte":  {"Allow": 0775, "Deny": 0770},
+		"s3:GetObject":    {"Allow": 0775, "Deny": 0770},
 		"s3:DeleteObject": {"Allow": 0777, "Deny": 0770},
 		"s3:PutObject":    {"Allow": 0777, "Deny": 0770},
 		"s3:*":            {"Allow": 0777, "Deny": 0770}}
