@@ -195,7 +195,6 @@ var (
 	// Name fo the default policy applied to the bucket
 	globalDefaultBucketPolicy string
 
-	// True if
 	globalWithMaprAce bool
 
 	// Add new variable global values here.

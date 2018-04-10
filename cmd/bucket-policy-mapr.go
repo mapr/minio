@@ -318,7 +318,7 @@ func SetMapRFSBucketPolicy(bucketPolicy policy.BucketAccessPolicy) error {
 }
 
 func RemoveMapRFSBucketPolicy(bucket string, policy policy.BucketAccessPolicy) error {
-	resources := make([]string, 1)
+	resources := make([]string, 0)
 
 	for _, statement := range policy.Statements {
 		for resource := range statement.Resources {

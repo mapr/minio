@@ -174,8 +174,8 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	if globalMapRFSMountPoint == "" {
 		err = errInvalidArgument
 	}
-	globalWithMaprAce := ctx.Bool("with-mapr-ace")
-	if globalWithMaprAce {
+	globalWithMaprAce = ctx.Bool("with-mapr-ace")
+	if globalWithMaprAce && globalMapRFSMountPoint == "" {
 		errorIf(err, "MapR-FS mountpoint should be specified")
 	}
 
