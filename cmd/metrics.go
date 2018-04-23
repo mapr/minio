@@ -100,7 +100,7 @@ func updateGeneralMetrics() {
 	serverUptime.Set(UTCNow().Sub(globalBootTime).Seconds())
 
 	// Fetch disk space info
-	objLayer := newObjectLayerFn()
+	objLayer := newObjectLayerFn(nil)
 	// Service not initialized yet
 	if objLayer == nil {
 		return

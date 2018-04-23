@@ -43,8 +43,7 @@ import (
 func enforceBucketPolicy(ctx context.Context, bucket, action, resource, referer, sourceIP string, queryParams url.Values, r *http.Request) (s3Error APIErrorCode) {
 	// Verify if bucket actually exists
 	objAPI := newObjectLayerFn(r)
-	if err := checkBucketExist(bucket, objAPI); err != nil {
-		err = errors.Cause(err)
+	if err := checkBucketExist(ctx, bucket, objAPI); err != nil {
 		switch err.(type) {
 		case BucketNameInvalid:
 			// Return error for invalid bucket name.

@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/minio/minio-go/pkg/policy"

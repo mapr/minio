@@ -182,8 +182,6 @@ var (
 	globalCacheExcludes []string
 	// Disk cache expiry
 	globalCacheExpiry = 90
-	// Current RPC version
-	globalRPCAPIVersion = semVersion{2, 0, 0}
 
 	// TODO(RostakaGmfun): verify that is is safe to access
 	// this variable from newObjecLayerFn without a mutex

@@ -102,7 +102,7 @@ func (s *adminCmd) ListLocks(query *ListLocksQuery, reply *ListLocksReply) error
 	if err := query.IsAuthenticated(); err != nil {
 		return err
 	}
-	objectAPI := newObjectLayerFn()
+	objectAPI := newObjectLayerFn(nil)
 	if objectAPI == nil {
 		return errServerNotInitialized
 	}

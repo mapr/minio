@@ -91,7 +91,7 @@ ENVIRONMENT VARIABLES:
      MINIO_CACHE_DRIVES: List of mounted drives or directories delimited by ";".
      MINIO_CACHE_EXCLUDE: List of cache exclusion patterns delimited by ";".
      MINIO_CACHE_EXPIRY: Cache expiry duration in days.
-	
+
   REGION:
      MINIO_REGION: To set custom region. By default all regions are accepted.
 
@@ -122,7 +122,7 @@ EXAMPLES:
       $ export MINIO_ACCESS_KEY=minio
       $ export MINIO_SECRET_KEY=miniostorage
       $ {{.HelpName}} http://node{1...8}.example.com/mnt/export/{1...8}
-	
+
   6. Start minio server with edge caching enabled.
      $ export MINIO_CACHE_DRIVES="/mnt/drive1;/mnt/drive2;/mnt/drive3;/mnt/drive4"
      $ export MINIO_CACHE_EXCLUDE="bucket1/*;*.png"
@@ -168,25 +168,7 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	// TODO(RostakaGmfun): Make refresh period either a compile-time constant
 	// or configurable variable
 	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
-	errorIf(err, "Failed to intialize multi-tenancy")
-
-	globalMapRFSMountPoint = ctx.String("mount-point")
-	if globalMapRFSMountPoint == "" {
-		err = errInvalidArgument
-	}
-	globalWithMaprAce = ctx.Bool("with-mapr-ace")
-	if globalWithMaprAce && globalMapRFSMountPoint == "" {
-		errorIf(err, "MapR-FS mountpoint should be specified")
-	}
-
-	globalDefaultBucketPolicy = ctx.String("default-bucket-policy")
-	if globalDefaultBucketPolicy == "" {
-		globalDefaultBucketPolicy = "private"
-	}
-	if !IsSupportedDefaultBucketPolicy(globalDefaultBucketPolicy) {
-		err = errInvalidArgument
-	}
-	errorIf(err, "Unsupported default bucket policy: " + globalDefaultBucketPolicy)
+	logger.FatalIf(err, "Failed to intialize multi-tenancy")
 }
 
 func serverHandleEnvVars() {
