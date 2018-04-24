@@ -187,14 +187,6 @@ var (
 	// this variable from newObjecLayerFn without a mutex
 	globalTenantManager TenantManager
 
-	// Path to the top-level MapR-FS directory - required for MapR ACE functionality
-	globalMapRFSMountPoint string
-
-	// Name fo the default policy applied to the bucket
-	globalDefaultBucketPolicy string
-
-	globalWithMaprAce bool
-
 	// Add new variable global values here.
 
 )

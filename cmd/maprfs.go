@@ -21,8 +21,6 @@ type MapRFSObjects struct {
 	uid int /// FS user id which should be used to access the file system
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
-	withMaprAce bool /// True if MapR ACE modification is enabled according to bucket policy
-	defaultBucketPolicy string
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -103,16 +101,7 @@ func (self MapRFSObjects) StorageInfo(ctx context.Context) StorageInfo {
 func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, location string) error {
 	self.prepareContext(bucket, "", "s3:PutBucket")
 	defer self.shutdownContext()
-	err := self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
-	if err != nil {
-		return err
-	}
-
-	if self.withMaprAce {
-		return ApplyDefaultMapRFSBucketPolicy(bucket)
-	} else {
-		return err
-	}
+	return self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
 }
 
 func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (bucketInfo BucketInfo, err error) {
@@ -284,14 +273,8 @@ func (self MapRFSObjects) ClearLocks(ctx context.Context, lockInfo []VolumeLockI
 func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, policy policy.BucketAccessPolicy) error {
 	self.prepareContext(bucket, "", "s3:PutBucketPolicy")
 	defer self.shutdownContext()
-	err := self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
+	return self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
 	if err != nil {
-		return err
-	}
-
-	if self.withMaprAce {
-		return SetMapRFSBucketPolicy(policy)
-	} else {
 		return err
 	}
 }
