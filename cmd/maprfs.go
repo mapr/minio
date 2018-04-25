@@ -83,11 +83,6 @@ func (self MapRFSObjects) shutdownContext() error {
 	return nil
 }
 
-/// Retrieve actual bucket name for the current tenant
-func (self MapRFSObjects) getBucketName(bucket string) string {
-	return bucket
-}
-
 func (self MapRFSObjects) Shutdown(ctx context.Context) error {
 	return self.FSObjects.Shutdown(ctx)
 }
@@ -99,15 +94,19 @@ func (self MapRFSObjects) StorageInfo(ctx context.Context) StorageInfo {
 }
 
 func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, location string) error {
-	self.prepareContext(bucket, "", "s3:PutBucket")
-	defer self.shutdownContext()
-	return self.FSObjects.MakeBucketWithLocation(ctx, self.getBucketName(bucket), location)
+	// Create bucket directory using the current 'root' user and then chown
+	err := self.FSObjects.MakeBucketWithLocation(ctx, bucket, location)
+	if err != nil {
+		return err
+	}
+
+	return os.Chown(getBucketPath(bucket), self.uid, self.gid);
 }
 
 func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (bucketInfo BucketInfo, err error) {
 	self.prepareContext(bucket, "", "s3:GetBucketInfo")
 	defer self.shutdownContext()
-	return self.FSObjects.GetBucketInfo(ctx, self.getBucketName(bucket))
+	return self.FSObjects.GetBucketInfo(ctx, bucket)
 }
 
 func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo, err error) {
@@ -118,7 +117,7 @@ func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo
 func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error {
 	self.prepareContext(bucket, "", "s3:DeleteBucket")
 	defer self.shutdownContext()
-	return self.FSObjects.DeleteBucket(ctx, self.getBucketName(bucket))
+	return self.FSObjects.DeleteBucket(ctx, bucket)
 }
 
 func (self MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (result ListObjectsInfo, err error) {
@@ -134,7 +133,7 @@ func (self MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marke
 		return result, PrefixAccessDenied{}
 	}
 	f.Close()
-	return self.FSObjects.ListObjects(ctx, self.getBucketName(bucket), prefix, marker, delimiter, maxKeys)
+	return self.FSObjects.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 }
 
 func (self MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, continuationToken, delimiter string, maxKeys int, fetchOwner bool, startAfter string) (result ListObjectsV2Info, err error) {
@@ -150,7 +149,7 @@ func (self MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, con
 		return result, PrefixAccessDenied{}
 	}
 	f.Close()
-	return self.FSObjects.ListObjectsV2(ctx, self.getBucketName(bucket), prefix, continuationToken, delimiter, maxKeys, fetchOwner, startAfter)
+	return self.FSObjects.ListObjectsV2(ctx, bucket, prefix, continuationToken, delimiter, maxKeys, fetchOwner, startAfter)
 }
 
 func (self MapRFSObjects) GetObject(ctx context.Context, bucket, object string, startOffset int64, length int64, writer io.Writer, etag string) (error) {
@@ -159,19 +158,19 @@ func (self MapRFSObjects) GetObject(ctx context.Context, bucket, object string, 
 	if err != nil {
 		return err
 	}
-	return self.FSObjects.GetObject(ctx, self.getBucketName(bucket), object, startOffset, length, writer, etag)
+	return self.FSObjects.GetObject(ctx, bucket, object, startOffset, length, writer, etag)
 }
 
 func (self MapRFSObjects) GetObjectInfo(ctx context.Context, bucket, object string) (objInfo ObjectInfo, err error) {
 	self.prepareContext(bucket, object, "s3:GetObject")
 	defer self.shutdownContext()
-	return self.FSObjects.GetObjectInfo(ctx, self.getBucketName(bucket), object)
+	return self.FSObjects.GetObjectInfo(ctx, bucket, object)
 }
 
 func (self MapRFSObjects) PutObject(ctx context.Context, bucket, object string, data *hash.Reader, metadata map[string]string) (objInfo ObjectInfo, err error) {
 	self.prepareContext(bucket, object, "s3:PutObject")
 	defer self.shutdownContext()
-	return self.FSObjects.PutObject(ctx, self.getBucketName(bucket), object, data, metadata)
+	return self.FSObjects.PutObject(ctx, bucket, object, data, metadata)
 }
 
 func (self MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, destBucket, destObject string, srcInfo ObjectInfo) (objInfo ObjectInfo, err error) {
@@ -183,19 +182,19 @@ func (self MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, 
 func (self MapRFSObjects) DeleteObject(ctx context.Context, bucket, object string) error {
 	self.prepareContext(bucket, object, "s3:DeleteObject")
 	defer self.shutdownContext()
-	return self.FSObjects.DeleteObject(ctx, self.getBucketName(bucket), object)
+	return self.FSObjects.DeleteObject(ctx, bucket, object)
 }
 
 func (self MapRFSObjects) ListMultipartUploads(ctx context.Context, bucket, prefix, keyMarker, uploadIDMarker, delimiter string, maxUploads int) (result ListMultipartsInfo, err error) {
 	self.prepareContext(bucket, "", "s3:ListBucketMultipartUploads")
 	defer self.shutdownContext()
-	return self.FSObjects.ListMultipartUploads(ctx, self.getBucketName(bucket), prefix, keyMarker, uploadIDMarker, delimiter, maxUploads)
+	return self.FSObjects.ListMultipartUploads(ctx, bucket, prefix, keyMarker, uploadIDMarker, delimiter, maxUploads)
 }
 
 func (self MapRFSObjects) NewMultipartUpload(ctx context.Context, bucket, object string, metadata map[string]string) (uploadID string, err error) {
 	self.prepareContext(bucket, object, "s3:PutObject")
 	defer self.shutdownContext()
-	return self.FSObjects.NewMultipartUpload(ctx, self.getBucketName(bucket), object, metadata)
+	return self.FSObjects.NewMultipartUpload(ctx, bucket, object, metadata)
 }
 
 func (self MapRFSObjects) CopyObjectPart(ctx context.Context, srcBucket, srcObject, destBucket, destObject string, uploadID string, partID int, startOffset int64, length int64, srcInfo ObjectInfo) (info PartInfo, err error) {
@@ -207,25 +206,25 @@ func (self MapRFSObjects) CopyObjectPart(ctx context.Context, srcBucket, srcObje
 func (self MapRFSObjects) PutObjectPart(ctx context.Context, bucket, object, uploadID string, partID int, data *hash.Reader) (info PartInfo, err error) {
 	self.prepareContext(bucket, object, "")
 	defer self.shutdownContext()
-	return self.FSObjects.PutObjectPart(ctx, self.getBucketName(bucket), object, uploadID, partID, data)
+	return self.FSObjects.PutObjectPart(ctx, bucket, object, uploadID, partID, data)
 }
 
 func (self MapRFSObjects) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker int, maxParts int) (result ListPartsInfo, err error) {
 	self.prepareContext(bucket,  object, "s3:ListObjectParts")
 	defer self.shutdownContext()
-	return self.FSObjects.ListObjectParts(ctx, self.getBucketName(bucket), object, uploadID, partNumberMarker, maxParts)
+	return self.FSObjects.ListObjectParts(ctx, bucket, object, uploadID, partNumberMarker, maxParts)
 }
 
 func (self MapRFSObjects) AbortMultipartUpload(ctx context.Context, bucket, object, uploadID string) error {
 	self.prepareContext("", "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.AbortMultipartUpload(ctx, self.getBucketName(bucket), object, uploadID)
+	return self.FSObjects.AbortMultipartUpload(ctx, bucket, object, uploadID)
 }
 
 func (self MapRFSObjects) CompleteMultipartUpload(ctx context.Context, bucket, object, uploadID string, uploadedParts []CompletePart) (objInfo ObjectInfo, err error) {
 	self.prepareContext("", "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.CompleteMultipartUpload(ctx, self.getBucketName(bucket), object, uploadID, uploadedParts)
+	return self.FSObjects.CompleteMultipartUpload(ctx, bucket, object, uploadID, uploadedParts)
 }
 
 func (self MapRFSObjects) HealFormat(ctx context.Context, dryRun bool) (madmin.HealResultItem, error) {
@@ -237,13 +236,13 @@ func (self MapRFSObjects) HealFormat(ctx context.Context, dryRun bool) (madmin.H
 func (self MapRFSObjects) HealBucket(ctx context.Context, bucket string, dryRun bool) ([]madmin.HealResultItem, error) {
 	self.prepareContext("", "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.HealBucket(ctx, self.getBucketName(bucket), dryRun)
+	return self.FSObjects.HealBucket(ctx, bucket, dryRun)
 }
 
 func (self MapRFSObjects) HealObject(ctx context.Context, bucket, object string, dryRun bool) (madmin.HealResultItem, error) {
 	self.prepareContext("", "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.HealObject(ctx, self.getBucketName(bucket), object, dryRun)
+	return self.FSObjects.HealObject(ctx, bucket, object, dryRun)
 }
 
 func (self MapRFSObjects) ListBucketsHeal(ctx context.Context) (buckets []BucketInfo, err error) {
@@ -255,13 +254,13 @@ func (self MapRFSObjects) ListBucketsHeal(ctx context.Context) (buckets []Bucket
 func (self MapRFSObjects) ListObjectsHeal(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (ListObjectsInfo, error) {
 	self.prepareContext("", "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.ListObjectsHeal(ctx, self.getBucketName(bucket), prefix, marker, delimiter, maxKeys)
+	return self.FSObjects.ListObjectsHeal(ctx, bucket, prefix, marker, delimiter, maxKeys)
 }
 
 func (self MapRFSObjects) ListLocks(ctx context.Context, bucket, prefix string, duration time.Duration) ([]VolumeLockInfo, error) {
 	self.prepareContext("", "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.ListLocks(ctx, self.getBucketName(bucket), prefix, duration)
+	return self.FSObjects.ListLocks(ctx, bucket, prefix, duration)
 }
 
 func (self MapRFSObjects) ClearLocks(ctx context.Context, lockInfo []VolumeLockInfo) error {
@@ -273,25 +272,25 @@ func (self MapRFSObjects) ClearLocks(ctx context.Context, lockInfo []VolumeLockI
 func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, policy policy.BucketAccessPolicy) error {
 	self.prepareContext(bucket, "", "s3:PutBucketPolicy")
 	defer self.shutdownContext()
-	return self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
+	return self.FSObjects.SetBucketPolicy(ctx, bucket, policy)
 }
 
 func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy.BucketAccessPolicy, error) {
 	self.prepareContext(bucket, "", "s3:GetBucketPolicy")
 	defer self.shutdownContext()
-	return self.FSObjects.GetBucketPolicy(ctx, self.getBucketName(bucket))
+	return self.FSObjects.GetBucketPolicy(ctx, bucket)
 }
 
 func (self MapRFSObjects) RefreshBucketPolicy(ctx context.Context, bucket string) error {
 	self.prepareContext(bucket, "", "")
 	defer self.shutdownContext()
-	return self.FSObjects.RefreshBucketPolicy(ctx, self.getBucketName(bucket))
+	return self.FSObjects.RefreshBucketPolicy(ctx, bucket)
 }
 
 func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string) error {
 	self.prepareContext(bucket, "", "s3:DeleteBucketPolicy")
 	defer self.shutdownContext()
-	return self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
+	return self.FSObjects.DeleteBucketPolicy(ctx, bucket)
 }
 
 func (self MapRFSObjects) IsNotificationSupported() bool {

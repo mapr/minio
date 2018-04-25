@@ -27,7 +27,6 @@ import (
 	"reflect"
 	"sort"
 	"sync"
-	"syscall"
 	"time"
 
 	"github.com/minio/minio-go/pkg/policy"
@@ -75,10 +74,6 @@ type fsAppendFile struct {
 
 // Initializes meta volume on all the fs path.
 func initMetaVolumeFS(fsPath, fsUUID string) error {
-	// Change umask to 0 temporarliry so that
-	// every tenant could access the meta bucket
-	prevUmask := syscall.Umask(0)
-	defer syscall.Umask(prevUmask)
 	// This happens for the first time, but keep this here since this
 	// is the only place where it can be made less expensive
 	// optimizing all other calls. Create minio meta volume,
@@ -89,16 +84,10 @@ func initMetaVolumeFS(fsPath, fsUUID string) error {
 	}
 
 	metaTmpPath := pathJoin(fsPath, minioMetaTmpBucket, fsUUID)
-	if err := os.MkdirAll(metaTmpPath, 0777); err != nil {
+	if err := os.MkdirAll(metaTmpPath, 0777 | os.ModeSticky); err != nil {
 		return err
 	}
 
-	// TODO(RostakaGmfun): Thoroughly review this solution.
-	// The .minio.sys/buckets dir is created here to make sure it has correct
-	// access rights. Otherwise, this directory will have the rights of
-	// the first tenant which uploaded an object.
-	// A more sophisticated solution would be to create separate minio Meta buckets
-	// per each tenant. This requires a bunch of modifications, though.
 	metaBucketFolderPath := pathJoin(fsPath, minioMetaBucket, bucketMetaPrefix)
 	if err := os.MkdirAll(metaBucketFolderPath, 0777); err != nil {
 		return err
