@@ -274,9 +274,6 @@ func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, po
 	self.prepareContext(bucket, "", "s3:PutBucketPolicy")
 	defer self.shutdownContext()
 	return self.FSObjects.SetBucketPolicy(ctx, self.getBucketName(bucket), policy)
-	if err != nil {
-		return err
-	}
 }
 
 func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy.BucketAccessPolicy, error) {
@@ -294,16 +291,7 @@ func (self MapRFSObjects) RefreshBucketPolicy(ctx context.Context, bucket string
 func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string) error {
 	self.prepareContext(bucket, "", "s3:DeleteBucketPolicy")
 	defer self.shutdownContext()
-	err := self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
-	if err != nil {
-		return err
-	}
-
-	if self.withMaprAce {
-		return RemoveMapRFSBucketPolicy(bucket, self.FSObjects.bucketPolicies.GetBucketPolicy(bucket))
-	} else {
-		return err
-	}
+	return self.FSObjects.DeleteBucketPolicy(ctx, self.getBucketName(bucket))
 }
 
 func (self MapRFSObjects) IsNotificationSupported() bool {
