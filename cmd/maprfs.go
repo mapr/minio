@@ -100,7 +100,13 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 		return err
 	}
 
-	return os.Chown(getBucketPath(bucket), self.uid, self.gid);
+	err = os.Chown(getBucketPath(bucket), self.uid, self.gid);
+	if err != nil {
+		return err
+	}
+
+	bucketMetaDir := pathJoin(self.FSObjects.fsPath, minioMetaBucket, bucketMetaPrefix, bucket)
+	return os.Chown(bucketMetaDir, self.uid, self.gid);
 }
 
 func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (bucketInfo BucketInfo, err error) {

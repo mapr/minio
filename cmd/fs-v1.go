@@ -27,6 +27,7 @@ import (
 	"reflect"
 	"sort"
 	"sync"
+	"syscall"
 	"time"
 
 	"github.com/minio/minio-go/pkg/policy"
@@ -83,10 +84,13 @@ func initMetaVolumeFS(fsPath, fsUUID string) error {
 		return err
 	}
 
+	// tmp directory should have 777 and sticky bit set
+	prevUmask := syscall.Umask(0)
 	metaTmpPath := pathJoin(fsPath, minioMetaTmpBucket, fsUUID)
 	if err := os.MkdirAll(metaTmpPath, 0777 | os.ModeSticky); err != nil {
 		return err
 	}
+	syscall.Umask(prevUmask)
 
 	metaBucketFolderPath := pathJoin(fsPath, minioMetaBucket, bucketMetaPrefix)
 	if err := os.MkdirAll(metaBucketFolderPath, 0777); err != nil {
@@ -237,6 +241,13 @@ func (fs *FSObjects) MakeBucketWithLocation(ctx context.Context, bucket, locatio
 	}
 
 	if err = fsMkdir(ctx, bucketDir); err != nil {
+		return toObjectErr(err, bucket)
+	}
+
+	// Create meta bucket dir beforehand and give correct access rights
+	bucketMetaDir := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix, bucket)
+
+	if err = fsMkdir(ctx, bucketMetaDir); err != nil {
 		return toObjectErr(err, bucket)
 	}
 
