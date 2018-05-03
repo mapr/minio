@@ -293,7 +293,7 @@ func fsCreateFile(ctx context.Context, filePath string, reader io.Reader, buf []
 		return 0, err
 	}
 
-	if err := mkdirAll(pathutil.Dir(filePath), 0777); err != nil {
+	if err := mkdirAll(pathutil.Dir(filePath), 0770); err != nil {
 		logger.LogIf(ctx, err)
 		return 0, err
 	}
@@ -303,7 +303,7 @@ func fsCreateFile(ctx context.Context, filePath string, reader io.Reader, buf []
 		return 0, err
 	}
 
-	writer, err := lock.Open(filePath, os.O_CREATE|os.O_WRONLY, 0666)
+	writer, err := lock.Open(filePath, os.O_CREATE|os.O_WRONLY, 0660)
 	if err != nil {
 		return 0, osErrToFSFileErr(err)
 	}
