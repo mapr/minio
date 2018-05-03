@@ -51,7 +51,7 @@ func getBucketOwner(bucket string) (err error, uid int, gid int) {
 }
 
 func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (uid int, gid int) {
-	fmt.Println("eval bucket policy: ", policy)
+	fmt.Println("eval bucket policy: ", policy, bucket, object, action)
 	for _, statement := range policy.Statements {
 		if statement.Effect == "Allow" &&
 			matchPolicyTenant(self.tenantName, statement) &&
@@ -151,7 +151,7 @@ func (self MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marke
 }
 
 func (self MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, continuationToken, delimiter string, maxKeys int, fetchOwner bool, startAfter string) (result ListObjectsV2Info, err error) {
-	self.prepareContext(bucket, "", "s3:ListObjects")
+	self.prepareContext(bucket, "", "s3:ListBucket")
 	defer self.shutdownContext()
 
 	// Temporary hack to handle access denied for ListObjects,
