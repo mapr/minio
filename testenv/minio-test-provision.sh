@@ -21,7 +21,7 @@ str = f.read()
 data = dict()
 if len(str) > 0:
     data = json.loads(str);
-data['$1'] = { 'secretKey': '$2', 'uid': '$USER_ID', 'gid': '$GROUP_ID' }
+data['$1'] = { 'name': '$1', 'secretKey': '$2', 'uid': '$USER_ID', 'gid': '$GROUP_ID' }
 f.truncate(0)
 f.write(json.dumps(data, sort_keys=True, indent=4))
 EOF
