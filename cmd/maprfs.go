@@ -132,7 +132,10 @@ func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo
 func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error {
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 
-	if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") {
+	_, uid, gid := getBucketOwner(bucket)
+
+	if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") &&
+		(uid != self.uid || gid != self.gid) {
 		return PrefixAccessDenied{}
 	}
 
