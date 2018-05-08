@@ -50,17 +50,23 @@ func getBucketOwner(bucket string) (err error, uid int, gid int) {
 	return nil, int(linux_stat.Uid), int(linux_stat.Gid)
 }
 
-func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (uid int, gid int) {
-	fmt.Println("eval bucket policy: ", policy, bucket, object, action)
+func (self MapRFSObjects) matchBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) bool {
 	for _, statement := range policy.Statements {
 		if statement.Effect == "Allow" &&
 			matchPolicyTenant(self.tenantName, statement) &&
 			matchPolicyAction(action, statement) &&
 			matchPolicyResource(bucket, object, statement) {
-			err, uid, gid := getBucketOwner(bucket)
-			if err == nil {
-				return uid, gid
-			}
+			return true
+		}
+	}
+	return false
+}
+
+func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (uid int, gid int) {
+	fmt.Println("eval bucket policy: ", policy, bucket, object, action)
+	if self.matchBucketPolicy(bucket, object, policy, action) {
+		if err, uid, gid := getBucketOwner(bucket); err == nil {
+			return uid, gid
 		}
 	}
 
@@ -124,13 +130,13 @@ func (self MapRFSObjects) ListBuckets(ctx context.Context) (buckets []BucketInfo
 }
 
 func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error {
-	// Bypass fs impersonation since only user who created directory can delete it
-	err, uid, gid := getBucketOwner(bucket)
+	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 
-	if err != nil || uid != self.uid || gid != self.gid {
-		return errFileAccessDenied
+	if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") {
+		return PrefixAccessDenied{}
 	}
 
+	// Bypass fs impersonation since only user who created directory can delete it
 	return self.FSObjects.DeleteBucket(ctx, bucket)
 }
 

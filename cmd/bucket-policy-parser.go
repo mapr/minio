@@ -190,14 +190,12 @@ func checkBucketPolicyResources(bucket string, bucketPolicy policy.BucketAccessP
 					// Resource prefix is not equal to bucket for
 					// prefix invalid actions, reject them.
 					if resourcePrefix != bucket {
-						fmt.Println("malformed 1")
 						return ErrMalformedPolicy
 					}
 				} else {
 					// For all other actions validate if resourcePrefix begins
 					// with bucket name, if not reject them.
 					if strings.Split(resourcePrefix, "/")[0] != bucket {
-						fmt.Println("malformed 2")
 						return ErrMalformedPolicy
 					}
 					// All valid resources collect them separately to verify nesting.
