@@ -301,6 +301,10 @@ func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, po
 func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (policy.BucketAccessPolicy, error) {
 	self.prepareContext(bucket, "", "s3:GetBucketPolicy")
 	defer self.shutdownContext()
+	err, uid, gid := getBucketOwner(bucket)
+	if err != nil || uid != self.uid || gid != self.gid {
+		return policy.BucketAccessPolicy{}, PrefixAccessDenied{}
+	}
 	return self.FSObjects.GetBucketPolicy(ctx, bucket)
 }
 
