@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"path"
+	"path/filepath"
 	"runtime"
 	"syscall"
 	"strings"
@@ -13,6 +15,7 @@ import (
 	"github.com/minio/minio/pkg/hash"
 	"github.com/minio/minio/pkg/madmin"
 	"github.com/minio/minio-go/pkg/policy"
+	"github.com/minio/minio-go/pkg/set"
 )
 
 // MapRFSObjects - Wraps the FSObjects ObjectLayer implementation to add multitenancy support
@@ -38,8 +41,40 @@ func matchPolicyAction(action string, statement policy.Statement) bool {
 	return statement.Actions.Contains(action)
 }
 
+var writableActions = set.StringSet{
+	"s3:PutObject": {},
+	"s3:DeleteObject": {},
+}
+
+/// Returns true if a given action requires write permission
+func actionIsWritable(action string) bool {
+	_, ok := writableActions[action];
+	return ok
+}
+
+func getObjectPath(bucket, object string) string {
+	return path.Join(getBucketPath(bucket), object)
+}
+
+func getObjectMetaPath(bucket, object string) string {
+	objectApi := newObjectLayerFn(nil)
+	return pathJoin(objectApi.(*FSObjects).fsPath, ".minio.sys", "buckets", bucket, object)
+}
+
 func getBucketOwner(bucket string) (err error, uid int, gid int) {
 	path := getBucketPath(bucket)
+	fi, err := os.Stat(path)
+	if err != nil {
+		return err, 0, 0
+	}
+
+	linux_stat := fi.Sys().(*syscall.Stat_t)
+
+	return nil, int(linux_stat.Uid), int(linux_stat.Gid)
+}
+
+func getObjectOwner(bucket, object string) (err error, uid int, gid int) {
+	path := getObjectPath(bucket, object)
 	fi, err := os.Stat(path)
 	if err != nil {
 		return err, 0, 0
@@ -62,10 +97,30 @@ func (self MapRFSObjects) matchBucketPolicy(bucket, object string, policy policy
 	return false
 }
 
+func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, int, int) {
+	err, bucketUid, bucketGid := getBucketOwner(bucket)
+	if err != nil {
+		return err, 0, 0
+	}
+
+	if object == "" || !actionIsWritable(action) || (self.uid == bucketUid && self.gid == bucketGid) {
+		return nil, 0, 0
+	}
+
+	err, uid, gid := getObjectOwner(bucket, object)
+	if err != nil {
+		return nil, bucketUid, bucketGid
+	} else if uid == self.uid && gid == self.gid {
+		return nil, 0, 0
+	} else {
+		return nil, self.uid, self.gid
+	}
+}
+
 func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (uid int, gid int) {
 	fmt.Println("eval bucket policy: ", policy, bucket, object, action)
 	if self.matchBucketPolicy(bucket, object, policy, action) {
-		if err, uid, gid := getBucketOwner(bucket); err == nil {
+		if err, uid, gid := self.evaluateUidGid(bucket, object, action); err == nil {
 			return uid, gid
 		}
 	}
@@ -192,8 +247,29 @@ func (self MapRFSObjects) GetObjectInfo(ctx context.Context, bucket, object stri
 
 func (self MapRFSObjects) PutObject(ctx context.Context, bucket, object string, data *hash.Reader, metadata map[string]string) (objInfo ObjectInfo, err error) {
 	self.prepareContext(bucket, object, "s3:PutObject")
-	defer self.shutdownContext()
-	return self.FSObjects.PutObject(ctx, bucket, object, data, metadata)
+	objInfo, err = self.FSObjects.PutObject(ctx, bucket, object, data, metadata)
+	self.shutdownContext()
+	if err != nil {
+		return objInfo, err
+	}
+
+	ret := os.Chown(getObjectPath(bucket, object), self.uid, self.gid);
+	if ret != nil {
+		return ObjectInfo{}, ret
+	}
+
+	ret = filepath.Walk(getObjectMetaPath(bucket, object), func(name string, info os.FileInfo, err error) error {
+        if err == nil {
+            err = os.Chown(name, self.uid, self.gid)
+        }
+        return err
+    })
+
+	if ret != nil {
+		return ObjectInfo{}, ret
+	}
+
+	return objInfo, err
 }
 
 func (self MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, destBucket, destObject string, srcInfo ObjectInfo) (objInfo ObjectInfo, err error) {
