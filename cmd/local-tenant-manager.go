@@ -60,6 +60,11 @@ func (self *LocalTenantManager) GetSecretKey(accessKey string) (string, error) {
 		return tenantInfo.secretKey, nil
 	}
 
+	defaultCredentials := globalServerConfig.GetCredential()
+	if defaultCredentials.AccessKey == accessKey {
+		return defaultCredentials.SecretKey, nil
+	}
+
 	return "", errInvalidAccessKeyID
 
 }
@@ -138,9 +143,14 @@ func (self *LocalTenantManager) GetTenantName(accessKey string) (string, error) 
 	self.tenantMapMutex.RLock()
 	tenantInfo, ok := self.tenantMap[accessKey]
 	self.tenantMapMutex.RUnlock()
-	if !ok {
-		return "", errInvalidAccessKeyID
+	if ok {
+		return tenantInfo.name, nil
 	}
 
-	return tenantInfo.name, nil
+	defaultCredentials := globalServerConfig.GetCredential()
+	if defaultCredentials.AccessKey == accessKey {
+		return "default", nil
+	}
+
+	return "", errInvalidAccessKeyID
 }
