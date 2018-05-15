@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"os"
 	"os/signal"
@@ -28,6 +29,7 @@ import (
 	"github.com/minio/dsync"
 	xhttp "github.com/minio/minio/cmd/http"
 	"github.com/minio/minio/cmd/logger"
+	"github.com/minio/minio-go/pkg/set"
 )
 
 var serverFlags = []cli.Flag{
@@ -42,18 +44,9 @@ var serverFlags = []cli.Flag{
 		Usage: "Path to tenants mapping file. Supply to enable multi-tenancy.",
 	},
 	cli.StringFlag{
-		Name: "mount-point, M",
-		Value: "",
-		Usage: "Path to the mount point of MapR-FS used as backend",
-	},
-	cli.StringFlag{
-		Name: "default-bucket-policy, B",
-		Value: "",
-		Usage: "Defaul bucket policy applied on bucket creation: private, public-r, public-rw",
-	},
-	cli.BoolFlag{
-		Name: "with-mapr-ace",
-		Usage: "Modify MapR ACE according to bucket policies",
+		Name: "security-policy, S",
+		Value: "combined",
+		Usage: "Security policy to use for multi-tenancy: fsonly (scenario 1), swonly (scenario 3), combined (scenario 2, default)",
 	},
 }
 
@@ -169,6 +162,23 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	// or configurable variable
 	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
 	logger.FatalIf(err, "Failed to intialize multi-tenancy")
+
+	globalSecurityPolicy = ctx.String("security-policy")
+	if !isSupportedSecurityPolicy(globalSecurityPolicy) {
+		fmt.Println("Unsupported security policy, using default combined")
+		globalSecurityPolicy = "combined"
+	}
+}
+
+func isSupportedSecurityPolicy(secPolicy string) bool {
+	supportedSecurityPolicies := set.StringSet {
+		"fsonly": {},
+		"combined": {},
+		"swonly": {},
+	}
+
+	_, ok := supportedSecurityPolicies[secPolicy]
+	return ok
 }
 
 func serverHandleEnvVars() {

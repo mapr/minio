@@ -24,6 +24,7 @@ type MapRFSObjects struct {
 	uid int /// FS user id which should be used to access the file system
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
+	securityPolicy string /// Security policy specified at server start
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -50,6 +51,11 @@ var writableActions = set.StringSet{
 func actionIsWritable(action string) bool {
 	_, ok := writableActions[action];
 	return ok
+}
+
+func getBucketPath(bucket string) string {
+	objectApi := newObjectLayerFn(nil)
+	return pathJoin(objectApi.(*FSObjects).fsPath, bucket)
 }
 
 func getObjectPath(bucket, object string) string {

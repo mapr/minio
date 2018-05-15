@@ -21,7 +21,12 @@ str = f.read()
 data = dict()
 if len(str) > 0:
     data = json.loads(str);
-data['$1'] = { 'name': '$1', 'secretKey': '$2', 'uid': '$USER_ID', 'gid': '$GROUP_ID' }
+if 'tenants' not in data:
+   data['tenants'] = []
+if 'credentials' not in data:
+   data['credentials'] = []
+data['tenants'].append({ 'name': '$1', 'uid': '$USER_ID', 'gid': '$GROUP_ID' })
+data['credentials'].append({ 'tenant': '$1', 'accessKey': '$1', 'secretKey': '$2' })
 f.truncate(0)
 f.write(json.dumps(data, sort_keys=True, indent=4))
 EOF
