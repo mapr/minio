@@ -6,7 +6,6 @@ import (
 	"io"
 	"os"
 	"path"
-	"path/filepath"
 	"runtime"
 	"syscall"
 	"strings"
@@ -112,17 +111,15 @@ func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, 
 
 	if object == "" || !actionIsWritable(action) || (self.uid == bucketUid && self.gid == bucketGid) {
 		fmt.Println("!actionIsWritable")
-		return nil, 0, 0
+		return nil, bucketUid, bucketGid
 	}
 
 	err, uid, gid := getObjectOwner(bucket, object)
 	fmt.Println("obj owner ", err, uid, gid)
-	if err != nil {
+	if err != nil || (uid == self.uid && gid == self.gid) {
 		return nil, bucketUid, bucketGid
-	} else if uid == self.uid && gid == self.gid {
-		return nil, self.uid, self.gid
 	} else {
-		return nil, bucketUid, bucketGid
+		return PrefixAccessDenied{bucket, object}, 0, 0
 	}
 }
 
@@ -280,13 +277,6 @@ func (self MapRFSObjects) PutObject(ctx context.Context, bucket, object string, 
 	if ret != nil {
 		return ObjectInfo{}, ret
 	}
-
-	ret = filepath.Walk(getObjectMetaPath(bucket, object), func(name string, info os.FileInfo, err error) error {
-		if err == nil {
-			err = os.Chown(name, self.uid, self.gid)
-		}
-		return err
-	})
 
 	if ret != nil {
 		return ObjectInfo{}, ret
