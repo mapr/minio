@@ -265,11 +265,11 @@ func (self MapRFSObjects) PutObject(ctx context.Context, bucket, object string, 
 	}
 
 	ret = filepath.Walk(getObjectMetaPath(bucket, object), func(name string, info os.FileInfo, err error) error {
-        if err == nil {
-            err = os.Chown(name, self.uid, self.gid)
-        }
-        return err
-    })
+		if err == nil {
+			err = os.Chown(name, self.uid, self.gid)
+		}
+		return err
+	})
 
 	if ret != nil {
 		return ObjectInfo{}, ret
