@@ -2,6 +2,7 @@
 
 MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
 MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
+MINIO_DATA=/mapr/localhost/s3data
 
 if [ ! -d $MINIO_DIR ]
 then
@@ -14,7 +15,7 @@ echo $1
 case $1 in
     start)
         echo "Running minio"
-	nohup $MINIO_DIR/bin/minio server --config-dir $MINIO_DIR/conf -T $MINIO_DIR/conf/tenants.json $MINIO_DIR/conf > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
+	nohup $MINIO_DIR/bin/minio server --config-dir $MINIO_DIR/conf -T $MINIO_DIR/conf/tenants.json $MINIO_DATA > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
