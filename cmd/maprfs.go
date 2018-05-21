@@ -110,7 +110,6 @@ func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, 
 	}
 
 	if object == "" || !actionIsWritable(action) || (self.uid == bucketUid && self.gid == bucketGid) {
-		fmt.Println("!actionIsWritable")
 		return nil, bucketUid, bucketGid
 	}
 
