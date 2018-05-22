@@ -9,12 +9,12 @@ then
    exit 1
 fi
 
-echo $1
-
 case $1 in
     start)
         echo "Running minio"
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MINIO_DIR/config/mfs.json  > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
+        rm -rf $MINIO_DIR/logs
+        mkdir $MINIO_DIR/logs
+	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MINIO_DIR/conf/mfs.json  > $MINIO_DIR/logs/minio.log 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
@@ -28,12 +28,16 @@ case $1 in
         fi
         ;;
     status)
-        if [ -f $MINIO_PID_FILE ]
+        if [ ! -f $MINIO_PID_FILE ]
         then
-            echo "Minio is running"
-		exit 0
-        else
             echo "Minio is not running"
-		exit 1
+            exit 1
         fi
+        if [ ! kill -0 $(cat $MINIO_PID_FILE) > /dev/null 2>&1 ]
+        then
+            echo "Minio is not running"
+            rm $MINIO_PID_FILE
+            exit 1
+        fi
+        echo "Minio is running"
 esac
