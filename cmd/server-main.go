@@ -29,7 +29,6 @@ import (
 	"github.com/minio/dsync"
 	xhttp "github.com/minio/minio/cmd/http"
 	"github.com/minio/minio/cmd/logger"
-	"github.com/minio/minio-go/pkg/set"
 )
 
 var serverFlags = []cli.Flag{
@@ -166,35 +165,16 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 }
 
 func processMapRFSConfig(ctx *cli.Context) {
-	maprfsConfig = ctx.String("mfs-confg")
+	var err error
+	maprfsConfig := ctx.String("mfs-config")
 	if maprfsConfig != "" {
-		maprMinioCfg, err = parseMapRMinioConfig(maprfsConfig)
+		fmt.Println(maprfsConfig)
+		globalMaprMinioCfg, err = parseMapRMinioConfig(maprfsConfig)
 		logger.FatalIf(err, "Failed to parse MapR Minio config " + maprfsConfig)
-		return
 	}
 
-	tenantsFile := ctx.String("tenants")
-	// TODO(RostakaGmfun): Make refresh period either a compile-time constant
-	// or configurable variable
-	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
+	globalTenantManager, err = newLocalTenantManager(globalMaprMinioCfg.TenantsFile, 60 * 5)
 	logger.FatalIf(err, "Failed to intialize multi-tenancy")
-
-	globalSecurityScenario = ctx.String("security-scenario")
-	if !isSupportedSecurityScenario(globalSecurityScenario) {
-		fmt.Println("Unsupported security scenario, using default combined")
-		globalSecurityScenario= "hybrid"
-	}
-}
-
-func isSupportedSecurityScenario(scenario string) bool {
-	supportedSecurityScenarios := set.StringSet {
-		"fs_only": {},
-		"hybrid": {},
-		"s3_only": {},
-	}
-
-	_, ok := supportedSecurityScenarios[scenario]
-	return ok
 }
 
 func serverHandleEnvVars() {
@@ -215,7 +195,7 @@ func init() {
 
 // serverMain handler called for 'minio server' command.
 func serverMain(ctx *cli.Context) {
-	if (!ctx.IsSet("sets") && !ctx.Args().Present()) || ctx.Args().First() == "help" {
+	if ctx.Args().First() == "help" {
 		cli.ShowCommandHelpAndExit(ctx, "server", 1)
 	}
 
@@ -333,6 +313,10 @@ func serverMain(ctx *cli.Context) {
 // Initialize object layer with the supplied disks, objectLayer is nil upon any error.
 func newObjectLayer(endpoints EndpointList) (newObject ObjectLayer, err error) {
 	// For FS only, directly use the disk.
+
+	if globalMaprMinioCfg.FsPath != "" {
+		return NewFSObjectLayer(globalMaprMinioCfg.FsPath)
+	}
 
 	isFS := len(endpoints) == 1
 	if isFS {

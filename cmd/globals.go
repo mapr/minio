@@ -187,7 +187,7 @@ var (
 	// this variable from newObjecLayerFn without a mutex
 	globalTenantManager TenantManager
 
-	globalSecurityScenario string
+	globalMaprMinioCfg MapRMinioConfig
 
 	// Add new variable global values here.
 
