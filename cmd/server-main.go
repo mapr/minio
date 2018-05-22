@@ -44,9 +44,14 @@ var serverFlags = []cli.Flag{
 		Usage: "Path to tenants mapping file. Supply to enable multi-tenancy.",
 	},
 	cli.StringFlag{
-		Name: "security-policy, S",
-		Value: "combined",
-		Usage: "Security policy to use for multi-tenancy: fsonly (scenario 1), swonly (scenario 3), combined (scenario 2, default)",
+		Name: "security-scenario, S",
+		Value: "hybrid",
+		Usage: "Security scenario to use for multi-tenancy: fs_only (scenario 1), s3_only (scenario 3), hybrid (scenario 2, default)",
+	},
+	cli.StringFlag{
+		Name: "mfs-config, M",
+		Value: "",
+		Usage: "Path to MapRFS-specific config to configure multitenancy and security scenario",
 	},
 }
 
@@ -157,27 +162,38 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 		globalIsXL = true
 	}
 
+	processMapRFSConfig(ctx)
+}
+
+func processMapRFSConfig(ctx *cli.Context) {
+	maprfsConfig = ctx.String("mfs-confg")
+	if maprfsConfig != "" {
+		maprMinioCfg, err = parseMapRMinioConfig(maprfsConfig)
+		logger.FatalIf(err, "Failed to parse MapR Minio config " + maprfsConfig)
+		return
+	}
+
 	tenantsFile := ctx.String("tenants")
 	// TODO(RostakaGmfun): Make refresh period either a compile-time constant
 	// or configurable variable
 	globalTenantManager, err = newLocalTenantManager(tenantsFile, 60 * 5)
 	logger.FatalIf(err, "Failed to intialize multi-tenancy")
 
-	globalSecurityPolicy = ctx.String("security-policy")
-	if !isSupportedSecurityPolicy(globalSecurityPolicy) {
-		fmt.Println("Unsupported security policy, using default combined")
-		globalSecurityPolicy = "combined"
+	globalSecurityScenario = ctx.String("security-scenario")
+	if !isSupportedSecurityScenario(globalSecurityScenario) {
+		fmt.Println("Unsupported security scenario, using default combined")
+		globalSecurityScenario= "hybrid"
 	}
 }
 
-func isSupportedSecurityPolicy(secPolicy string) bool {
-	supportedSecurityPolicies := set.StringSet {
-		"fsonly": {},
-		"combined": {},
-		"swonly": {},
+func isSupportedSecurityScenario(scenario string) bool {
+	supportedSecurityScenarios := set.StringSet {
+		"fs_only": {},
+		"hybrid": {},
+		"s3_only": {},
 	}
 
-	_, ok := supportedSecurityPolicies[secPolicy]
+	_, ok := supportedSecurityScenarios[scenario]
 	return ok
 }
 

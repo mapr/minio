@@ -23,7 +23,7 @@ type MapRFSObjects struct {
 	uid int /// FS user id which should be used to access the file system
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
-	securityPolicy string /// Security policy specified at server start
+	securityScenario string /// Security scenariospecified at server start
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -132,7 +132,7 @@ func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy pol
 	return PrefixAccessDenied{bucket, object}, 0, 0
 }
 
-func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
+func (self MapRFSObjects) prepareContextHybrid(bucket, object, action string) error {
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 
 	err, uid, gid := self.evaluateBucketPolicy(bucket, object, policy, action)
@@ -147,11 +147,65 @@ func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
 	return nil
 }
 
-func (self MapRFSObjects) shutdownContext() error {
+func (self MapRFSObjects) prepareContextFSOnly(bucket, object, action string) error {
+	runtime.LockOSThread()
+	syscall.Setfsgid(self.gid)
+	syscall.Setfsuid(self.uid)
+
+	return nil
+}
+
+func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) error {
+	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
+	if self.matchBucketPolicy(bucket, object, policy, action) {
+		return nil
+	} else {
+		return PrefixAccessDenied{bucket, object}
+	}
+}
+
+func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
+	switch self.securityScenario {
+	case "hybrid":
+		return self.prepareContextHybrid(bucket, object, action)
+	case "fs_only":
+		return self.prepareContextFSOnly(bucket, object, action)
+	case "s3_only":
+		return self.prepareContextS3Only(bucket, object, action)
+	default:
+		return errInvalidArgument
+	}
+}
+
+func (self MapRFSObjects) shutdownContextHybrid() error {
 	syscall.Setfsuid(syscall.Geteuid())
 	syscall.Setfsgid(syscall.Getegid())
 	runtime.UnlockOSThread()
 	return nil
+}
+
+func (self MapRFSObjects) shutdownContextFSOnly() error {
+	syscall.Setfsuid(syscall.Geteuid())
+	syscall.Setfsgid(syscall.Getegid())
+	runtime.UnlockOSThread()
+	return nil
+}
+
+func (self MapRFSObjects) shutdownContextS3Only() error {
+	return nil
+}
+
+func (self MapRFSObjects) shutdownContext() error {
+	switch self.securityScenario {
+	case "hybrid":
+		return self.shutdownContextHybrid()
+	case "fs_only":
+		return self.shutdownContextFSOnly()
+	case "s3":
+		return self.shutdownContextS3Only()
+	default:
+		return errInvalidArgument
+	}
 }
 
 func (self MapRFSObjects) Shutdown(ctx context.Context) error {

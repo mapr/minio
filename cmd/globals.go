@@ -187,7 +187,7 @@ var (
 	// this variable from newObjecLayerFn without a mutex
 	globalTenantManager TenantManager
 
-	globalSecurityPolicy string
+	globalSecurityScenario string
 
 	// Add new variable global values here.
 
