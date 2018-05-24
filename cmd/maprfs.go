@@ -38,7 +38,7 @@ func matchPolicyTenant(tenantName string, statement policy.Statement) bool {
 }
 
 func matchPolicyAction(action string, statement policy.Statement) bool {
-	return statement.Actions.Contains(action)
+	return statement.Actions.Contains(action) || statement.Actions.Contains("s3:*")
 }
 
 var writableActions = set.StringSet{
@@ -51,6 +51,21 @@ func actionIsWritable(action string) bool {
 	_, ok := writableActions[action];
 	return ok
 }
+
+const defaultBucketPolicyJson = `
+{
+   "Version": "version",
+   "Statement": [
+       {
+           "Effect": "Allow",
+           "Principal": { "AWS": ["insert-tenant-name-here"] },
+           "Action": ["s3:*"],
+           "Resource": "arn:aws:s3:::insert-resource-here",
+           "Sid": "1"
+       }
+   ]
+}
+`
 
 func getBucketPath(bucket string) string {
 	objectApi := newObjectLayerFn(nil)
@@ -157,6 +172,7 @@ func (self MapRFSObjects) prepareContextFSOnly(bucket, object, action string) er
 
 func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) error {
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
+	fmt.Println("eval policy:", bucket, object, action, self.tenantName)
 	if self.matchBucketPolicy(bucket, object, policy, action) {
 		return nil
 	} else {
@@ -223,6 +239,23 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 	err := self.FSObjects.MakeBucketWithLocation(ctx, bucket, location)
 	if err != nil {
 		return err
+	}
+
+	if self.securityScenario == "s3_only" {
+		var bucketPolicy policy.BucketAccessPolicy
+		err = parseBucketPolicy(strings.NewReader(defaultBucketPolicyJson), &bucketPolicy)
+		if err != nil {
+			fmt.Println("parse bucket policy err", err)
+			return err
+		}
+		bucketPolicy.Statements[0].Principal.AWS = set.CreateStringSet(self.tenantName)
+		bucketPolicy.Statements[0].Resources = set.CreateStringSet("arn:aws:s3:::" + bucket)
+		fmt.Println("Assigning default bucket policy:", bucketPolicy)
+		err := self.FSObjects.SetBucketPolicy(ctx, bucket, bucketPolicy)
+		if err != nil {
+			fmt.Println("set bucket policy err", err)
+			return err
+		}
 	}
 
 	err = os.Chown(getBucketPath(bucket), self.uid, self.gid);

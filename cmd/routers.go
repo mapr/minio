@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"net/http"
+	"syscall"
 
 	"github.com/gorilla/mux"
 )
@@ -38,6 +39,10 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		// It would be great to do this without adding second
 		// return value to this function.
 		return layer
+	}
+	if globalMaprMinioCfg.SecurityScenario == "s3_only" {
+		uid = syscall.Getuid()
+		gid = syscall.Getgid()
 	}
 
 	tenantName, err := globalTenantManager.GetTenantName(accessKey)
