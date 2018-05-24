@@ -1,4 +1,4 @@
-#!/usr/bin/env sh
+#!/usr/bin/env bash
 
 MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
 MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
