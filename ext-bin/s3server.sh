@@ -20,6 +20,7 @@ function checkSecurityScenario() {
            echo "Warning: running on previously populated storage with different securityScenario (previous: $currentScenario)"
         fi
     fi
+    mkdir -p $fsPath
     echo $configScenario > $fsPath/.scenarioType
 }
 
@@ -54,7 +55,7 @@ case $1 in
             echo "Minio is not running"
             exit 1
         fi
-        if [ ! kill -0 $(cat $MINIO_PID_FILE) > /dev/null 2>&1 ]
+        if [ ! $(kill -0 $(cat $MINIO_PID_FILE)) ]
         then
             echo "Minio is not running"
             rm $MINIO_PID_FILE

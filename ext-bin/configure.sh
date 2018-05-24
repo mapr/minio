@@ -12,7 +12,9 @@ function copyWardenFile() {
 function tweakPermissions() {
     chown root:${MAPR_GROUP} $MINIO_BINARY
     chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/conf
+
     chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME
+    chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/bin
     chmod 6050 $MINIO_BINARY
 }
 
