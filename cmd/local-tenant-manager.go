@@ -8,6 +8,8 @@ import (
 	"sync"
 	"syscall"
 	"time"
+
+	"github.com/minio/minio/cmd/logger"
 )
 
 type TenantInfo struct {
@@ -48,7 +50,9 @@ func newLocalTenantManager(tenantFilename string, refreshPeriodSeconds int) (Ten
 		go func() {
 			for {
 				<-tickerChannel.C
-				localTenantManager.readTenantMappingFile(tenantFilename)
+				if localTenantManager.readTenantMappingFile(tenantFilename) != nil {
+					logger.Info("Failed to reaload " + tenantFilename + ". Using previous version")
+				}
 			}
 		}()
 	}
@@ -117,8 +121,9 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 
 	var unmarshalled interface{}
 	err = json.Unmarshal(data, &unmarshalled)
-
-	//tenants := make(map[string]TenantInfo)
+	if err != nil {
+		return err
+	}
 
 	tenantsConfig, ok := unmarshalled.(map[string]interface{})
 	if !ok {
