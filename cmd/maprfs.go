@@ -413,7 +413,7 @@ func (self MapRFSObjects) NewMultipartUpload(ctx context.Context, bucket, object
 }
 
 func (self MapRFSObjects) CopyObjectPart(ctx context.Context, srcBucket, srcObject, destBucket, destObject string, uploadID string, partID int, startOffset int64, length int64, srcInfo ObjectInfo) (info PartInfo, err error) {
-	if err := self.prepareContext(bucket, object "s3:CopyObjectPart"); err != nil {
+	if err := self.prepareContext(destBucket, destObject, "s3:CopyObjectPart"); err != nil {
 		return info, err
 	}
 	defer self.shutdownContext()
