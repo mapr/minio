@@ -55,7 +55,7 @@ case $1 in
             echo "Minio is not running"
             exit 1
         fi
-        if [ ! $(kill -0 $(cat $MINIO_PID_FILE)) ]
+        if [ $(kill -0 $(cat $MINIO_PID_FILE)) ]
         then
             echo "Minio is not running"
             rm $MINIO_PID_FILE
