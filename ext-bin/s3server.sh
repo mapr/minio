@@ -4,6 +4,7 @@ MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
 MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/mfs.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
+DEPLAOYMENT_TYPE_FILE=.deployment_type
 
 function checkSecurityScenario() {
     configScenario=$(grep securityScenario $MAPR_S3_CONFIG | sed -e "s/\s*\"securityScenario\"\s*:\s*\"\(.*\)\",/\1/g")
@@ -14,14 +15,14 @@ function checkSecurityScenario() {
 
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
 
-    if [ -f $fsPath/.scenarioType ]; then
-        currentScenario=$(cat $fsPath/.scenarioType)
+    if [ -f $fsPath/$DEPLOYMENT_TYPE_FILE ]; then
+        currentScenario=$(cat $fsPath/$DEPLOYMENT_TYPE_FILE)
         if [ ! $currentScenario = $configScenario ]; then
            echo "Warning: running on previously populated storage with different securityScenario (previous: $currentScenario)"
         fi
     fi
     mkdir -p $fsPath
-    echo $configScenario > $fsPath/.scenarioType
+    echo $configScenario > $fsPath/$DEPLOYMENT_TYPE_FILE
 }
 
 if [ ! -d $MINIO_DIR ]
