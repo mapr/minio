@@ -139,6 +139,11 @@ func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, 
 func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (err error, uid int, gid int) {
 	fmt.Println("eval bucket policy: ", policy, bucket, object, action)
 	err, bucketUid, bucketGid := getBucketOwner(bucket)
+	if err != nil {
+		// No such bucket
+		return BucketNotFound{bucket, ""}, 0, 0
+	}
+
 	if self.matchBucketPolicy(bucket, object, policy, action) || (self.uid == bucketUid && self.gid == bucketGid) {
 		return self.evaluateUidGid(bucket, object, action)
 	}
