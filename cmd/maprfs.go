@@ -30,7 +30,8 @@ func matchPolicyResource(bucket, object string, statement policy.Statement) bool
 	resourceString := "arn:aws:s3:::" + bucket + "/" + object
 	resourceString = strings.TrimSuffix(resourceString, "/")
 	return statement.Resources.Contains(resourceString) ||
-		statement.Resources.Contains("arn:aws:s3:::" + bucket + "/*")
+		statement.Resources.Contains("arn:aws:s3:::" + bucket + "/*") ||
+		statement.Resources.Contains("arn:aws:s3:::" + bucket)
 }
 
 func matchPolicyTenant(tenantName string, statement policy.Statement) bool {
