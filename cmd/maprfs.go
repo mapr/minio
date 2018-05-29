@@ -120,7 +120,6 @@ func (self MapRFSObjects) matchBucketPolicy(bucket, object string, policy policy
 
 func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, int, int) {
 	err, bucketUid, bucketGid := getBucketOwner(bucket)
-	fmt.Println("err ", err, bucketUid, bucketGid)
 	if err != nil {
 		return err, self.uid, self.gid
 	}
@@ -130,7 +129,6 @@ func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, 
 	}
 
 	err, uid, gid := getObjectOwner(bucket, object)
-	fmt.Println("obj owner ", err, uid, gid)
 	if err != nil || (uid == self.uid && gid == self.gid) {
 		return nil, bucketUid, bucketGid
 	} else {
@@ -286,9 +284,14 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 
 	_, uid, gid := getBucketOwner(bucket)
 
-	if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") &&
-		(uid != self.uid || gid != self.gid) {
-		return PrefixAccessDenied{}
+	if self.securityScenario == "s3_only" {
+		if err := self.prepareContext(bucket, "", "s3:DeleteBucket"); err != nil {
+			return err
+		}
+	} else {
+		if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") && (uid != self.uid || gid != self.gid) {
+			return PrefixAccessDenied{bucket, ""}
+		}
 	}
 
 	// Bypass fs impersonation since only user who created directory can delete it
