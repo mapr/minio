@@ -15,7 +15,7 @@ import (
 type MapRMinioConfig struct {
 	FsPath string `json:fsPath` /// Path to the Minio data root directory
 	TenantsFile string `json:tenantsFile` /// Path to the tenants.json file
-	SecurityScenario string  `json:securityScenario` /// Security scenario to use
+	SecurityMode string  `json:securityMode` /// Security scenario to use
 }
 
 func parseMapRMinioConfig(maprfsConfig string) (config MapRMinioConfig, err error) {
@@ -34,12 +34,12 @@ func parseMapRMinioConfig(maprfsConfig string) (config MapRMinioConfig, err erro
 
 	fmt.Println(config)
 
-	if config.SecurityScenario == "" {
-		config.SecurityScenario = "hybrid"
+	if config.SecurityMode == "" {
+		config.SecurityMode = "mixed"
 	}
 
-	if !isSupportedSecurityScenario(config.SecurityScenario) {
-		logger.FatalIf(errInvalidArgument, "Unsupported security scenario specified" + config.SecurityScenario)
+	if !isSupportedSecurityScenario(config.SecurityMode) {
+		logger.FatalIf(errInvalidArgument, "Unsupported security scenario specified" + config.SecurityMode)
 		return config, errInvalidArgument
 	}
 
@@ -49,7 +49,7 @@ func parseMapRMinioConfig(maprfsConfig string) (config MapRMinioConfig, err erro
 func isSupportedSecurityScenario(scenario string) bool {
 	supportedSecurityScenarios := set.StringSet {
 		"fs_only": {},
-		"hybrid": {},
+		"mixed": {},
 		"s3_only": {},
 	}
 

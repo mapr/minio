@@ -1,5 +1,5 @@
 {
     "fsPath": "/mapr/localhost/s3data",
-    "securityScenario": "hybrid",
+    "securityMode": "mixed",
     "tenantsFile": "/opt/mapr/s3server/s3server-1.0.0/conf/tenants.json"
 }

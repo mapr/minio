@@ -43,12 +43,7 @@ var serverFlags = []cli.Flag{
 		Usage: "Path to tenants mapping file. Supply to enable multi-tenancy.",
 	},
 	cli.StringFlag{
-		Name: "security-scenario, S",
-		Value: "hybrid",
-		Usage: "Security scenario to use for multi-tenancy: fs_only (scenario 1), s3_only (scenario 3), hybrid (scenario 2, default)",
-	},
-	cli.StringFlag{
-		Name: "mfs-config, M",
+		Name: "minio-config, M",
 		Value: "",
 		Usage: "Path to MapRFS-specific config to configure multitenancy and security scenario",
 	},
@@ -166,7 +161,7 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 
 func processMapRFSConfig(ctx *cli.Context) {
 	var err error
-	maprfsConfig := ctx.String("mfs-config")
+	maprfsConfig := ctx.String("minio-config")
 	if maprfsConfig != "" {
 		fmt.Println(maprfsConfig)
 		globalMaprMinioCfg, err = parseMapRMinioConfig(maprfsConfig)

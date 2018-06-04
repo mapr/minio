@@ -23,7 +23,7 @@ type MapRFSObjects struct {
 	uid int /// FS user id which should be used to access the file system
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
-	securityScenario string /// Security scenariospecified at server start
+	securityMode string /// Security mode specified at server start
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -151,7 +151,7 @@ func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy pol
 	return PrefixAccessDenied{bucket, object}, 0, 0
 }
 
-func (self MapRFSObjects) prepareContextHybrid(bucket, object, action string) error {
+func (self MapRFSObjects) prepareContextMixed(bucket, object, action string) error {
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 
 	err, uid, gid := self.evaluateBucketPolicy(bucket, object, policy, action)
@@ -185,9 +185,9 @@ func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) er
 }
 
 func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
-	switch self.securityScenario {
-	case "hybrid":
-		return self.prepareContextHybrid(bucket, object, action)
+	switch self.securityMode {
+	case "mixed":
+		return self.prepareContextMixed(bucket, object, action)
 	case "fs_only":
 		return self.prepareContextFSOnly(bucket, object, action)
 	case "s3_only":
@@ -197,7 +197,7 @@ func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
 	}
 }
 
-func (self MapRFSObjects) shutdownContextHybrid() error {
+func (self MapRFSObjects) shutdownContextMixed() error {
 	syscall.Setfsuid(syscall.Geteuid())
 	syscall.Setfsgid(syscall.Getegid())
 	runtime.UnlockOSThread()
@@ -216,9 +216,9 @@ func (self MapRFSObjects) shutdownContextS3Only() error {
 }
 
 func (self MapRFSObjects) shutdownContext() error {
-	switch self.securityScenario {
-	case "hybrid":
-		return self.shutdownContextHybrid()
+	switch self.securityMode {
+	case "mixed":
+		return self.shutdownContextMixed()
 	case "fs_only":
 		return self.shutdownContextFSOnly()
 	case "s3":
@@ -245,7 +245,7 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 		return err
 	}
 
-	if self.securityScenario == "s3_only" {
+	if self.securityMode == "s3_only" {
 		var bucketPolicy policy.BucketAccessPolicy
 		err = parseBucketPolicy(strings.NewReader(defaultBucketPolicyJson), &bucketPolicy)
 		if err != nil {
@@ -289,7 +289,7 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 
 	_, uid, gid := getBucketOwner(bucket)
 
-	if self.securityScenario == "s3_only" {
+	if self.securityMode == "s3_only" {
 		if err := self.prepareContext(bucket, "", "s3:DeleteBucket"); err != nil {
 			return err
 		}
