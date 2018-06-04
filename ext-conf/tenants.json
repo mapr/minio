@@ -1,4 +1,17 @@
 {
-    "tenants": [],
-    "credentials": []
+    "tenants": [
+        {
+            "name": "tenant1",
+            "uid": 5001,
+            "gid": 5001
+        }
+    ],
+
+    "credentials": [
+        {
+            "accessKey": "accessKey1",
+            "secretKey": "secretKey1",
+            "tenant": "tenant1"
+        }
+    ]
 }
