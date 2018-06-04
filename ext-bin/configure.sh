@@ -4,6 +4,14 @@ S3SERVER_HOME=/opt/mapr/s3server/s3server-1.0.0
 WARDEN_CONF=$S3SERVER_HOME/conf/warden.s3server.conf
 MINIO_BINARY=/opt/mapr/s3server/s3server-1.0.0/bin/minio
 MFS_MINIO_CONFIG=s3server/s3server-1.0.0/conf/mfs.json
+manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
+
+if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
+    . ${MAPR_HOME}/server/common-ecosystem.sh
+else
+   echo "Failed to source common-ecosystem.sh"
+   exit 0
+fi
 
 function copyWardenFile() {
     cp $WARDEN_CONF /opt/mapr/conf/conf.d
@@ -18,8 +26,14 @@ function tweakPermissions() {
     chmod 6050 $MINIO_BINARY
 }
 
+function setupCertificate() {
+    $(manageSSLKeys) create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
+    mkdir -p .minio/certs
+    cp $S3SERVER_HOME/conf/ssl_trustore.pem $S3SERVER_HOME/.minio/certs/public.crt
+}
+
 function fixupMfsJson() {
-    clustername=$(cat /opt/mapr/conf/mapr-clusters.conf | cut -d" " -f1)
+    clustername=$(getClusterName)
     nodename=$(hostname)
     datapath="/mapr/$clustername/apps/s3/$nodename"
 
@@ -33,6 +47,7 @@ function fixupMfsJson() {
     sed -i "s#\"fsPath\"\s*:\s*\".*\"#\"fsPath\": \"$datapath\"#g" $MFS_MINIO_CONFIG
 }
 
+setupCertificate
 fixupMfsJson
 tweakPermissions
 copyWardenFile
