@@ -4,7 +4,7 @@ MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
 MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/mfs.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
-DEPLAOYMENT_TYPE_FILE=.deployment_type
+DEPLOYMENT_TYPE_FILE=.deployment_type
 
 function checkSecurityScenario() {
     configScenario=$(grep securityScenario $MAPR_S3_CONFIG | sed -e "s/\s*\"securityScenario\"\s*:\s*\"\(.*\)\",/\1/g")
