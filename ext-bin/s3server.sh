@@ -33,7 +33,7 @@ fi
 
 case $1 in
     start)
-        echo "Running minio"
+        echo "Running minio at $(date -R)"
         rm -rf $MINIO_DIR/logs
         mkdir $MINIO_DIR/logs
         checkSecurityScenario 2>&1 | tee "$MINIO_LOG_FILE"
