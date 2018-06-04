@@ -175,6 +175,9 @@ func (self MapRFSObjects) prepareContextFSOnly(bucket, object, action string) er
 }
 
 func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) error {
+	if _, err := os.Stat(getBucketPath(bucket)); os.IsNotExist(err) {
+		return BucketNotFound{bucket, object}
+	}
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 	fmt.Println("eval policy:", bucket, object, action, self.tenantName)
 	if self.matchBucketPolicy(bucket, object, policy, action) {
