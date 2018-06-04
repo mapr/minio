@@ -3,7 +3,7 @@
 S3SERVER_HOME=/opt/mapr/s3server/s3server-1.0.0
 WARDEN_CONF=$S3SERVER_HOME/conf/warden.s3server.conf
 MINIO_BINARY=/opt/mapr/s3server/s3server-1.0.0/bin/minio
-MFS_MINIO_CONFIG=s3server/s3server-1.0.0/conf/mfs.json
+MFS_MINIO_CONFIG=s3server/s3server-1.0.0/conf/minio.json
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 
 if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
@@ -47,7 +47,7 @@ function fixupMfsJson() {
     sed -i "s#\"fsPath\"\s*:\s*\".*\"#\"fsPath\": \"$datapath\"#g" $MFS_MINIO_CONFIG
 }
 
-setupCertificate
+#setupCertificate
 fixupMfsJson
 tweakPermissions
 copyWardenFile
