@@ -2,7 +2,7 @@
 
 MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
 MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
-MAPR_S3_CONFIG=$MINIO_DIR/conf/mfs.json
+MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
 DEPLOYMENT_TYPE_FILE=.deployment_type
 
