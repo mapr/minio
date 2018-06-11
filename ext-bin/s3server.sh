@@ -37,7 +37,7 @@ case $1 in
         rm -rf $MINIO_DIR/logs
         mkdir $MINIO_DIR/logs
         checkSecurityScenario 2>&1 | tee "$MINIO_LOG_FILE"
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MINIO_DIR/conf/mfs.json >> $MINIO_DIR/logs/minio.log 2>&1 & echo $! > $MINIO_PID_FILE
+	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_DIR/logs/minio.log 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
