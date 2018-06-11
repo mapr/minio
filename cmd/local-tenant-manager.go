@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"strconv"
 	"sync"
 	"syscall"
 	"time"
@@ -156,14 +155,14 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 			fmt.Println("Not uid field present")
 			continue
 		}
-		tenant.uid, _ = strconv.Atoi(uid.(string))
+		tenant.uid = int(uid.(float64))
 
 		gid, ok := tenantInfo["gid"]
 		if !ok {
 			fmt.Println("Not gid field present")
 			continue
 		}
-		tenant.gid, _ = strconv.Atoi(gid.(string))
+		tenant.gid = int(gid.(float64))
 		self.tenants[name.(string)] = tenant
 	}
 	fmt.Println(self.tenants)
