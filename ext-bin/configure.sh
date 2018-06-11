@@ -27,9 +27,11 @@ function tweakPermissions() {
 }
 
 function setupCertificate() {
-    $(manageSSLKeys) create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
-    mkdir -p .minio/certs
-    cp $S3SERVER_HOME/conf/ssl_trustore.pem $S3SERVER_HOME/.minio/certs/public.crt
+    if [ ! -f $MAPR_HOME/conf/ssl_truststore.pem ]; then
+        $manageSSLKeys create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
+    fi
+    mkdir -p $S3SERVER_HOME/.minio/certs
+    cp $MAPR_HOME/conf/ssl_truststore.pem $S3SERVER_HOME/.minio/certs/public.crt
 }
 
 function fixupMfsJson() {
@@ -47,7 +49,7 @@ function fixupMfsJson() {
     sed -i "s#\"fsPath\"\s*:\s*\".*\"#\"fsPath\": \"$datapath\"#g" $MFS_MINIO_CONFIG
 }
 
-#setupCertificate
+setupCertificate
 fixupMfsJson
 tweakPermissions
 copyWardenFile
