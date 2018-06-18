@@ -33,10 +33,10 @@ fi
 
 case $1 in
     start)
-        echo "[$(date -R)] Running minio" 2>&1 | tee "$MINIO_LOG_FILE"
         rm -rf $MINIO_DIR/logs
         mkdir $MINIO_DIR/logs
-        checkSecurityScenario 2>&1 | tee "$MINIO_LOG_FILE"
+        echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
+        checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
 	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_DIR/logs/minio.log 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
