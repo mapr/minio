@@ -24,6 +24,7 @@ function tweakPermissions() {
     chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME
     chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/bin
     chmod 6150 $MINIO_BINARY
+    chmod 700 $S3SERVER_HOME/conf/tenants.json
 }
 
 function setupCertificate() {
