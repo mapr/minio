@@ -10,7 +10,7 @@ function checkSecurityScenario() {
     configScenario=$(grep securityScenario $MAPR_S3_CONFIG | sed -e "s/\s*\"securityScenario\"\s*:\s*\"\(.*\)\",/\1/g")
     if [ -z $configScenario ]
     then
-        configScenario="hybrid"
+        configScenario="mixed"
     fi
 
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
