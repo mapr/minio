@@ -23,7 +23,7 @@ import (
 	"github.com/minio/minio/pkg/event"
 	xnet "github.com/minio/minio/pkg/net"
 
-	sarama "gopkg.in/Shopify/sarama.v1"
+	"github.com/confluentinc/confluent-kafka-go/kafka"
 )
 
 // KafkaArgs - Kafka target arguments.
@@ -37,7 +37,7 @@ type KafkaArgs struct {
 type KafkaTarget struct {
 	id       event.TargetID
 	args     KafkaArgs
-	producer sarama.SyncProducer
+	producer *kafka.Producer
 }
 
 // ID - returns target ID.
@@ -58,33 +58,28 @@ func (target *KafkaTarget) Send(eventData event.Event) error {
 		return err
 	}
 
-	msg := sarama.ProducerMessage{
-		Topic: target.args.Topic,
-		Key:   sarama.StringEncoder(key),
-		Value: sarama.ByteEncoder(data),
+	msg := kafka.Message{
+		TopicPartition: kafka.TopicPartition{Topic: &target.args.Topic, Partition: kafka.PartitionAny},
+		Key:   []byte(key),
+		Value: []byte(data),
 	}
-	_, _, err = target.producer.SendMessage(&msg)
 
-	return err
+	return target.producer.Produce(&msg, nil)
 }
 
 // Close - closes underneath kafka connection.
 func (target *KafkaTarget) Close() error {
-	return target.producer.Close()
+	target.producer.Close()
+	return nil
 }
 
 // NewKafkaTarget - creates new Kafka target.
 func NewKafkaTarget(id string, args KafkaArgs) (*KafkaTarget, error) {
-	config := sarama.NewConfig()
-	config.Producer.RequiredAcks = sarama.WaitForAll
-	config.Producer.Retry.Max = 10
-	config.Producer.Return.Successes = true
-
 	brokers := []string{}
 	for _, broker := range args.Brokers {
 		brokers = append(brokers, broker.String())
 	}
-	producer, err := sarama.NewSyncProducer(brokers, config)
+	producer, err := kafka.NewProducer(&kafka.ConfigMap{"bootstrap.servers": brokers[0]})
 	if err != nil {
 		return nil, err
 	}
