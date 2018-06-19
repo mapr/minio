@@ -62,13 +62,6 @@ func printStartupMessage(apiEndPoints []string) {
 	// Prints credential, region and browser access.
 	printServerCommonMsg(strippedAPIEndpoints)
 
-	// Prints `mc` cli configuration message chooses
-	// first endpoint as default.
-	printCLIAccessMsg(strippedAPIEndpoints[0], "myminio")
-
-	// Prints documentation message.
-	printObjectAPIMsg()
-
 	// SSL is configured reads certification chain, prints
 	// authority and expiry.
 	if globalIsSSL {
@@ -106,8 +99,6 @@ func stripStandardPorts(apiEndpoints []string) (newAPIEndpoints []string) {
 
 // Prints common server startup message. Prints credential, region and browser access.
 func printServerCommonMsg(apiEndpoints []string) {
-	// Get saved credentials.
-	cred := globalServerConfig.GetCredential()
 
 	// Get saved region.
 	region := globalServerConfig.GetRegion()
@@ -116,8 +107,6 @@ func printServerCommonMsg(apiEndpoints []string) {
 
 	// Colorize the message and print.
 	logger.StartupMessage(colorBlue("Endpoint: ") + colorBold(fmt.Sprintf(getFormatStr(len(apiEndpointStr), 1), apiEndpointStr)))
-	logger.StartupMessage(colorBlue("AccessKey: ") + colorBold(fmt.Sprintf("%s ", cred.AccessKey)))
-	logger.StartupMessage(colorBlue("SecretKey: ") + colorBold(fmt.Sprintf("%s ", cred.SecretKey)))
 	if region != "" {
 		logger.StartupMessage(colorBlue("Region: ") + colorBold(fmt.Sprintf(getFormatStr(len(region), 3), region)))
 	}

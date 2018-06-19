@@ -165,7 +165,6 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 		tenant.gid = int(gid.(float64))
 		self.tenants[name.(string)] = tenant
 	}
-	fmt.Println(self.tenants)
 
 	for _, iface := range credentials.([]interface{}) {
 		cred := iface.(map[string]interface{})
@@ -189,7 +188,6 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 		tenantCred.tenant = tenantName.(string)
 		self.credentials[accessKey.(string)] = tenantCred
 	}
-	fmt.Println(self.credentials)
 
 	return nil
 }
