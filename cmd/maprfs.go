@@ -384,7 +384,23 @@ func (self MapRFSObjects) PutObject(ctx context.Context, bucket, object string, 
 }
 
 func (self MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, destBucket, destObject string, srcInfo ObjectInfo) (objInfo ObjectInfo, err error) {
-	if err := self.prepareContext("", "", "s3:CopyObject"); err != nil {
+	err, uid, gid := getObjectOwner(srcBucket, srcObject)
+	if err != nil {
+		return objInfo, BucketNotFound{srcBucket, srcObject}
+	}
+
+	srcPolicy := self.FSObjects.bucketPolicies.GetBucketPolicy(srcBucket)
+
+	// GetObject operation is performed in another goroutine (and effectively another OS thread
+	// - see FsObjects implementation).
+	// So no need to impersonate here (other *free* OS threads ar running as mapr:mapr)
+	// Just check for enough permissions as per bucket policies
+	if !self.matchBucketPolicy(srcBucket, srcObject, srcPolicy, "s3:GetObject") && (self.uid != uid && self.gid != gid) {
+		return objInfo, PrefixAccessDenied{srcBucket, srcObject}
+	}
+
+	// PutObject, on the other hand, is done in the current goroutine.
+	if err := self.prepareContext(destBucket, srcBucket, "s3:PutObject"); err != nil {
 		return objInfo, err
 	}
 	defer self.shutdownContext()
