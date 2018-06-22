@@ -7,22 +7,22 @@ MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
 DEPLOYMENT_TYPE_FILE=.deployment_type
 
 function checkSecurityScenario() {
-    configScenario=$(grep securityScenario $MAPR_S3_CONFIG | sed -e "s/\s*\"securityScenario\"\s*:\s*\"\(.*\)\",/\1/g")
-    if [ -z $configScenario ]
+    configMode=$(grep deploymentMode $MAPR_S3_CONFIG | sed -e "s/\s*\"deploymentMode\"\s*:\s*\"\(.*\)\",/\1/g")
+    if [ -z $configMode ]
     then
-        configScenario="mixed"
+        configMode="mixed"
     fi
 
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
 
     if [ -f $fsPath/$DEPLOYMENT_TYPE_FILE ]; then
-        currentScenario=$(cat $fsPath/$DEPLOYMENT_TYPE_FILE)
-        if [ ! $currentScenario = $configScenario ]; then
-           echo "Warning: running on previously populated storage with different securityScenario (previous: $currentScenario)"
+        currentMode=$(cat $fsPath/$DEPLOYMENT_TYPE_FILE)
+        if [ ! $currentMode = $configMode ]; then
+           echo "Warning: running on previously populated storage with different deploymentMode (previous: $currentMode)"
         fi
     fi
     mkdir -p $fsPath
-    echo $configScenario > $fsPath/$DEPLOYMENT_TYPE_FILE
+    echo $configMode > $fsPath/$DEPLOYMENT_TYPE_FILE
 }
 
 if [ ! -d $MINIO_DIR ]
