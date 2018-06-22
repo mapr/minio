@@ -145,7 +145,7 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 		tenantInfo := iface.(map[string]interface{})
 		var tenant TenantInfo
 		name, ok := tenantInfo["name"]
-		if !ok {
+		if !ok || name.(string) == "" {
 			fmt.Println("Not name field present")
 			continue
 		}
@@ -170,18 +170,18 @@ func (self *LocalTenantManager) readTenantMappingFile(tenantFilename string) err
 		cred := iface.(map[string]interface{})
 		var tenantCred TenantCredential
 		accessKey, ok := cred["accessKey"]
-		if !ok {
+		if !ok || accessKey.(string) == "" {
 			fmt.Println("Not accessKey field present")
 			continue
 		}
 		secretKey, ok := cred["secretKey"]
-		if !ok {
+		if !ok || secretKey.(string) == "" {
 			fmt.Println("Not secretKey field present")
 			continue
 		}
 		tenantCred.secretKey = secretKey.(string)
 		tenantName, ok := cred["tenant"]
-		if !ok {
+		if !ok || tenantName.(string) == "" {
 			fmt.Println("Not tenant field present")
 			continue
 		}
