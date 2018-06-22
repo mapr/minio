@@ -32,7 +32,7 @@ function setupCertificate() {
         $manageSSLKeys create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
     fi
     mkdir -p $S3SERVER_HOME/.minio/certs
-    cp $MAPR_HOME/conf/ssl_truststore.pem $S3SERVER_HOME/.minio/certs/public.crt
+    cp $MAPR_HOME/conf/ssl_truststore.pem $S3SERVER_HOME/conf/.minio/certs/public.crt
 }
 
 function fixupMfsJson() {
