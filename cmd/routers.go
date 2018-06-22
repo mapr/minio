@@ -40,7 +40,8 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		// return value to this function.
 		return layer
 	}
-	if globalMaprMinioCfg.SecurityMode == "s3_only" {
+
+	if globalMaprMinioCfg.DeploymentMode == "s3_only" {
 		uid = syscall.Getuid()
 		gid = syscall.Getgid()
 	}
@@ -56,7 +57,7 @@ func newObjectLayerFn(request *http.Request) (layer ObjectLayer) {
 		uid: uid,
 		gid: gid,
 		tenantName: tenantName,
-		securityMode: globalMaprMinioCfg.SecurityMode,
+		deploymentMode: globalMaprMinioCfg.DeploymentMode,
 	}
 }
 

@@ -1,5 +1,5 @@
 {
     "fsPath": "/mapr/$clusterName/apps/s3/$nodeName",
-    "securityMode": "mixed",
+    "deploymentMode": "mixed",
     "tenantsFile": "/opt/mapr/s3server/s3server-1.0.0/conf/tenants.json"
 }

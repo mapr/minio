@@ -23,7 +23,7 @@ type MapRFSObjects struct {
 	uid int /// FS user id which should be used to access the file system
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
-	securityMode string /// Security mode specified at server start
+	deploymentMode string /// Deployment mode specified at server start
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -188,7 +188,7 @@ func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) er
 }
 
 func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
-	switch self.securityMode {
+	switch self.deploymentMode {
 	case "mixed":
 		return self.prepareContextMixed(bucket, object, action)
 	case "fs_only":
@@ -219,7 +219,7 @@ func (self MapRFSObjects) shutdownContextS3Only() error {
 }
 
 func (self MapRFSObjects) shutdownContext() error {
-	switch self.securityMode {
+	switch self.deploymentMode {
 	case "mixed":
 		return self.shutdownContextMixed()
 	case "fs_only":
@@ -248,7 +248,7 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 		return err
 	}
 
-	if self.securityMode == "s3_only" {
+	if self.deploymentMode == "s3_only" {
 		var bucketPolicy policy.BucketAccessPolicy
 		err = parseBucketPolicy(strings.NewReader(defaultBucketPolicyJson), &bucketPolicy)
 		if err != nil {
@@ -292,7 +292,7 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 
 	_, uid, gid := getBucketOwner(bucket)
 
-	if self.securityMode == "s3_only" {
+	if self.deploymentMode == "s3_only" {
 		if err := self.prepareContext(bucket, "", "s3:DeleteBucket"); err != nil {
 			return err
 		}

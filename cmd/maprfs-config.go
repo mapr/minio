@@ -15,7 +15,7 @@ import (
 type MapRMinioConfig struct {
 	FsPath string `json:fsPath` /// Path to the Minio data root directory
 	TenantsFile string `json:tenantsFile` /// Path to the tenants.json file
-	SecurityMode string  `json:securityMode` /// Security scenario to use
+	DeploymentMode string  `json:deploymentMode` /// Security scenario to use
 }
 
 func parseMapRMinioConfig(maprfsConfig string) (config MapRMinioConfig, err error) {
@@ -34,25 +34,25 @@ func parseMapRMinioConfig(maprfsConfig string) (config MapRMinioConfig, err erro
 
 	fmt.Println(config)
 
-	if config.SecurityMode == "" {
-		config.SecurityMode = "mixed"
+	if config.DeploymentMode == "" {
+		config.DeploymentMode = "mixed"
 	}
 
-	if !isSupportedSecurityScenario(config.SecurityMode) {
-		logger.FatalIf(errInvalidArgument, "Unsupported security scenario specified" + config.SecurityMode)
+	if !isSupportedDeploymentMode(config.DeploymentMode) {
+		logger.FatalIf(errInvalidArgument, "Unsupported deployment mode specified" + config.DeploymentMode)
 		return config, errInvalidArgument
 	}
 
 	return config, err
 }
 
-func isSupportedSecurityScenario(scenario string) bool {
-	supportedSecurityScenarios := set.StringSet {
+func isSupportedDeploymentMode(mode string) bool {
+	supportedDeploymentModes := set.StringSet {
 		"fs_only": {},
 		"mixed": {},
 		"s3_only": {},
 	}
 
-	_, ok := supportedSecurityScenarios[scenario]
+	_, ok := supportedDeploymentModes[mode]
 	return ok
 }
