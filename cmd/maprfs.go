@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -24,6 +25,34 @@ type MapRFSObjects struct {
 	gid int /// FS group id which should be used to access the file system
 	tenantName string /// Name of the tenant, used to evaluate bucket policies
 	deploymentMode string /// Deployment mode specified at server start
+}
+
+func RawSetfsuid(fsuid int) (prevFsuid int) {
+	r1, _, _ := syscall.RawSyscall(syscall.SYS_SETFSUID, uintptr(fsuid), 0, 0);
+	return int(r1)
+}
+
+func RawSetfsgid(fsgid int) (prevFsgid int) {
+	r1, _, _ := syscall.RawSyscall(syscall.SYS_SETFSGID, uintptr(fsgid), 0, 0);
+	return int(r1)
+}
+
+func Setfsuid(fsuid int) (err error) {
+	RawSetfsuid(fsuid)
+	if RawSetfsuid(fsuid) != fsuid {
+		return errors.New("Failed to perform FS impersonation")
+	}
+
+	return nil
+}
+
+func Setfsgid(fsgid int) (err error) {
+	RawSetfsgid(fsgid)
+	if RawSetfsgid(fsgid) != fsgid {
+		return errors.New("Failed to perform FS impersonation")
+	}
+
+	return nil
 }
 
 func matchPolicyResource(bucket, object string, statement policy.Statement) bool {
@@ -160,16 +189,27 @@ func (self MapRFSObjects) prepareContextMixed(bucket, object, action string) err
 	}
 
 	runtime.LockOSThread()
-	syscall.Setfsgid(gid)
-	syscall.Setfsuid(uid)
+	if err := Setfsgid(gid); err != nil {
+		return err
+	}
+
+	if err := Setfsuid(uid); err != nil {
+		return err
+	}
 
 	return nil
 }
 
 func (self MapRFSObjects) prepareContextFSOnly(bucket, object, action string) error {
 	runtime.LockOSThread()
-	syscall.Setfsgid(self.gid)
-	syscall.Setfsuid(self.uid)
+
+	if err := Setfsgid(self.gid); err != nil {
+		return err
+	}
+
+	if err := Setfsuid(self.uid); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -201,16 +241,28 @@ func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
 }
 
 func (self MapRFSObjects) shutdownContextMixed() error {
-	syscall.Setfsuid(syscall.Geteuid())
-	syscall.Setfsgid(syscall.Getegid())
-	runtime.UnlockOSThread()
+	defer runtime.UnlockOSThread()
+	if err := Setfsuid(syscall.Geteuid()); err != nil {
+		return err
+	}
+
+	if err := Setfsgid(syscall.Getegid()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
 func (self MapRFSObjects) shutdownContextFSOnly() error {
-	syscall.Setfsuid(syscall.Geteuid())
-	syscall.Setfsgid(syscall.Getegid())
-	runtime.UnlockOSThread()
+	defer runtime.UnlockOSThread()
+	if err := Setfsuid(syscall.Geteuid()); err != nil {
+		return err
+	}
+
+	if err := Setfsgid(syscall.Getegid()); err != nil {
+		return err
+	}
+
 	return nil
 }
 
