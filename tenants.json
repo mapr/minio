@@ -1,4 +1,0 @@
-{
-    "tenant1": {"uid":"1000","gid":"1000","secretKey":"secretKey1"},
-    "tenant2": {"uid":"1001","gid":"1001","secretKey":"secretKey2"},
-}
