@@ -19,7 +19,6 @@ package cmd
 import (
 	"encoding/json"
 	"io"
-	"io/ioutil"
 	"net"
 	"net/http"
 	"runtime"
@@ -258,14 +257,9 @@ func (api objectAPIHandlers) PutBucketPolicyHandler(w http.ResponseWriter, r *ht
 	// Read access policy up to maxAccessPolicySize.
 	// http://docs.aws.amazon.com/AmazonS3/latest/dev/access-policy-language-overview.html
 	// bucket policies are limited to 20KB in size, using a limit reader.
-	policyBytes, err := ioutil.ReadAll(io.LimitReader(r.Body, maxAccessPolicySize))
-	if err != nil {
-		logger.LogIf(ctx, err)
-		writeErrorResponse(w, toAPIErrorCode(err), r.URL)
-		return
-	}
 	policyInfo := policy.BucketAccessPolicy{}
-	if err = json.Unmarshal(policyBytes, &policyInfo); err != nil {
+	err = parseBucketPolicy(io.LimitReader(r.Body, maxAccessPolicySize), &policyInfo)
+	if err != nil {
 		writeErrorResponse(w, ErrInvalidPolicyDocument, r.URL)
 		return
 	}
