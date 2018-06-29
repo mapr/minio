@@ -3,7 +3,6 @@ package cmd
 import (
 	"context"
 	"errors"
-	"fmt"
 	"io"
 	"os"
 	"path"
@@ -166,7 +165,6 @@ func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, 
 }
 
 func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (err error, uid int, gid int) {
-	fmt.Println("eval bucket policy: ", policy, bucket, object, action)
 	err, bucketUid, bucketGid := getBucketOwner(bucket)
 	if err != nil {
 		// No such bucket
@@ -219,7 +217,6 @@ func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) er
 		return BucketNotFound{bucket, object}
 	}
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
-	fmt.Println("eval policy:", bucket, object, action, self.tenantName)
 	if self.matchBucketPolicy(bucket, object, policy, action) {
 		return nil
 	} else {
@@ -304,15 +301,12 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 		var bucketPolicy policy.BucketAccessPolicy
 		err = parseBucketPolicy(strings.NewReader(defaultBucketPolicyJson), &bucketPolicy)
 		if err != nil {
-			fmt.Println("parse bucket policy err", err)
 			return err
 		}
 		bucketPolicy.Statements[0].Principal.AWS = set.CreateStringSet(self.tenantName)
 		bucketPolicy.Statements[0].Resources = set.CreateStringSet("arn:aws:s3:::" + bucket)
-		fmt.Println("Assigning default bucket policy:", bucketPolicy)
 		err := self.FSObjects.SetBucketPolicy(ctx, bucket, bucketPolicy)
 		if err != nil {
-			fmt.Println("set bucket policy err", err)
 			return err
 		}
 	}
@@ -414,7 +408,6 @@ func (self MapRFSObjects) GetObjectInfo(ctx context.Context, bucket, object stri
 
 func (self MapRFSObjects) PutObject(ctx context.Context, bucket, object string, data *hash.Reader, metadata map[string]string) (objInfo ObjectInfo, err error) {
 	if err := self.prepareContext(bucket, object, "s3:PutObject"); err != nil {
-		fmt.Println("failed to put object", err)
 		return objInfo, err
 	}
 	objInfo, err = self.FSObjects.PutObject(ctx, bucket, object, data, metadata)
