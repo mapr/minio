@@ -38,7 +38,6 @@ function setupCertificate() {
 function fixupMfsJson() {
     clustername=$(getClusterName)
     nodename=$(hostname)
-    datapath="/mapr/$clustername/apps/s3/$nodename"
 
     if [ ! -d /mapr/$clustername/apps ]
     then
@@ -46,8 +45,9 @@ function fixupMfsJson() {
         exit 1
     fi
 
-    echo "Configuring S3Server to run on $datapath"
-    sed -i "s#\"fsPath\"\s*:\s*\".*\"#\"fsPath\": \"$datapath\"#g" $MFS_MINIO_CONFIG
+    sed -e "s/\${cluster}/$clustername/" -e "s/\${node}/$ndename/" $MFS_MINIO_CONFIG
+    fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
+    echo "Configuring S3Server to run on $fsPath"
 }
 
 setupCertificate
