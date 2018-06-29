@@ -39,7 +39,7 @@ func RawSetfsgid(fsgid int) (prevFsgid int) {
 
 func Setfsuid(fsuid int) (err error) {
 	RawSetfsuid(fsuid)
-	if RawSetfsuid(fsuid) != fsuid {
+	if RawSetfsuid(-1) != fsuid {
 		return errors.New("Failed to perform FS impersonation")
 	}
 
@@ -48,7 +48,7 @@ func Setfsuid(fsuid int) (err error) {
 
 func Setfsgid(fsgid int) (err error) {
 	RawSetfsgid(fsgid)
-	if RawSetfsgid(fsgid) != fsgid {
+	if RawSetfsgid(-1) != fsgid {
 		return errors.New("Failed to perform FS impersonation")
 	}
 
