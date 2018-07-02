@@ -98,6 +98,12 @@
 			"revisionTime": "2016-07-13T13:44:25+03:00"
 		},
 		{
+			"checksumSHA1": "LCWES3q+xfG/ZvzqVcMZZTPVN/g=",
+			"path": "github.com/confluentinc/confluent-kafka-go/kafka",
+			"revision": "f696f02dcbb04d95b103c5b848bb15f749a996f7",
+			"revisionTime": "2017-06-20T11:56:03Z"
+		},
+		{
 			"checksumSHA1": "/5cvgU+J4l7EhMXTK76KaCAfOuU=",
 			"path": "github.com/davecgh/go-spew/spew",
 			"revision": "346938d642f2ec3594ed81d874461961cd0faa76",
