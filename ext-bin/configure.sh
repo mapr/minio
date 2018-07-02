@@ -3,7 +3,7 @@
 S3SERVER_HOME=/opt/mapr/s3server/s3server-1.0.0
 WARDEN_CONF=$S3SERVER_HOME/conf/warden.s3server.conf
 MINIO_BINARY=/opt/mapr/s3server/s3server-1.0.0/bin/minio
-MFS_MINIO_CONFIG=s3server/s3server-1.0.0/conf/minio.json
+MAPR_S3_CONFIG=s3server/s3server-1.0.0/conf/minio.json
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 
 if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
@@ -45,7 +45,7 @@ function fixupMfsJson() {
         exit 1
     fi
 
-    sed -e "s/\${cluster}/$clustername/" -e "s/\${node}/$ndename/" $MFS_MINIO_CONFIG
+    sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
     echo "Configuring S3Server to run on $fsPath"
 }
