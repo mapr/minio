@@ -10,25 +10,27 @@ The 9000 port is forwarded to the host environment and this is where the minio l
 
 ## Setting up
 
-To brirg the Vagrant VM run:
+To bring the Vagrant VM run:
 ```bash
     vagrant up
     vagrant ssh
 ```
 
-To run minio, execute the following inside the vagrant session:
-
+To build minio, execute the following inside the vagrant session:
 ```bash
     vagrant up
     cd gopath/src/github.com/minio/minio
-    # Build minio
-    go build
+    CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -lMapRClient_c" go build
+```
+
+To run:
+```bash
     cp minio /home/vagrant
     cd /home/vagrant
     sudo chown root ./minio
     sudo chmod +s minio
     mkdir -m 0777 ~/data
-    ./minio server /home/vagrant/data -T /home/vagrant/tenants.json
+    LD_LIBRARY_PATH=/opt/mapr/lib ./minio server /home/vagrant/data -T /home/vagrant/tenants.json
 ```
 
 Enjoy the endless fun!

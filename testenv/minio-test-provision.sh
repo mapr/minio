@@ -52,10 +52,10 @@ function setup_go {
 function setup_mapr_client {
     add-apt-repository ppa:webupd8team/java
     add-apt-repository 'deb http://package.mapr.com/releases/v6.0.0/ubuntu binary trusty' -y
-    add-apt-repository 'deb http://package.mapr.com/releases/MEP/MEP-4.1/ubuntu binary trusty' -y
+    add-apt-repository 'deb http://package.mapr.com/releases/MEP/MEP-6.0/ubuntu binary trusty' -y
     apt-get update
     echo "oracle-java8-installer shared/accepted-oracle-license-v1-1 select true" | debconf-set-selections
-    apt-get install oracle-java8-installer mapr-posix-client-basic -y --allow-unauthenticated
+    apt-get install oracle-java8-installer mapr-posix-client-basic mapr-client mapr-librdkafka -y --allow-unauthenticated
 
     chmod +x /opt/mapr/bin/fusermount
     mkdir -m 0777 /mapr
