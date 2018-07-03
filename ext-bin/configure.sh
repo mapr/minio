@@ -39,12 +39,6 @@ function fixupMfsJson() {
     clustername=$(getClusterName)
     nodename=$(hostname)
 
-    if [ ! -d /mapr/$clustername/apps ]
-    then
-        echo "No MapRFS found on /mapr/$clustername/apps"
-        exit 1
-    fi
-
     sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
     echo "Configuring S3Server to run on $fsPath"
