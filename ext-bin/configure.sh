@@ -23,7 +23,7 @@ function tweakPermissions() {
     chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME
     chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/bin
     chmod 6150 $MINIO_BINARY
-    setcap "cap_setuid,cap_setgid+ei" $MINIO_BINARY
+    setcap "cap_setuid,cap_setgid+eip" $MINIO_BINARY
     chmod 700 $S3SERVER_HOME/conf/tenants.json
 }
 
