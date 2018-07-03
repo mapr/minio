@@ -485,7 +485,7 @@ func (self MapRFSObjects) CopyObjectPart(ctx context.Context, srcBucket, srcObje
 }
 
 func (self MapRFSObjects) PutObjectPart(ctx context.Context, bucket, object, uploadID string, partID int, data *hash.Reader) (info PartInfo, err error) {
-	if err := self.prepareContext(bucket, object, "s3:PutObjectPart"); err != nil {
+	if err := self.prepareContext(bucket, object, "s3:PutObject"); err != nil {
 		return info, err
 	}
 	defer self.shutdownContext()
@@ -493,7 +493,7 @@ func (self MapRFSObjects) PutObjectPart(ctx context.Context, bucket, object, upl
 }
 
 func (self MapRFSObjects) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker int, maxParts int) (result ListPartsInfo, err error) {
-	if err := self.prepareContext(bucket,  object, "s3:ListObjectParts"); err != nil {
+	if err := self.prepareContext(bucket,  object, "s3:ListObjects"); err != nil {
 		return result, err
 	}
 	defer self.shutdownContext()
@@ -501,7 +501,7 @@ func (self MapRFSObjects) ListObjectParts(ctx context.Context, bucket, object, u
 }
 
 func (self MapRFSObjects) AbortMultipartUpload(ctx context.Context, bucket, object, uploadID string) error {
-	if err := self.prepareContext(bucket, object, "s3:AbortMultipartUpload"); err != nil {
+	if err := self.prepareContext(bucket, object, "s3:PutObject"); err != nil {
 		return err
 	}
 	defer self.shutdownContext()
@@ -509,7 +509,7 @@ func (self MapRFSObjects) AbortMultipartUpload(ctx context.Context, bucket, obje
 }
 
 func (self MapRFSObjects) CompleteMultipartUpload(ctx context.Context, bucket, object, uploadID string, uploadedParts []CompletePart) (objInfo ObjectInfo, err error) {
-	if err := self.prepareContext(bucket, object, "s3:CompleteMultipartUpload"); err != nil {
+	if err := self.prepareContext(bucket, object, "s3:PutObject"); err != nil {
 		return objInfo, err
 	}
 	defer self.shutdownContext()
