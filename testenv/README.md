@@ -18,19 +18,17 @@ To bring the Vagrant VM run:
 
 To build minio, execute the following inside the vagrant session:
 ```bash
-    vagrant up
     cd gopath/src/github.com/minio/minio
-    CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -lMapRClient_c" go build
+    CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -Wl,-rpath=/opt/mapr/lib -lMapRClient_c" go build
 ```
 
 To run:
 ```bash
     cp minio /home/vagrant
     cd /home/vagrant
-    sudo chown root ./minio
-    sudo chmod +s minio
-    mkdir -m 0777 ~/data
-    LD_LIBRARY_PATH=/opt/mapr/lib ./minio server /home/vagrant/data -T /home/vagrant/tenants.json
+    mkdir -m 0777 /home/vagrant/data
+    cp gopath/src/github.com/minio/minio/ext-conf/minio.json /home/vagrant/
+    LD_LIBRARY_PATH=/opt/mapr/lib sudo ./minio server /home/vagrant/data -M /home/vagrant/minio.json
 ```
 
 Enjoy the endless fun!
