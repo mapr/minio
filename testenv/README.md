@@ -28,7 +28,7 @@ To run:
     cd /home/vagrant
     mkdir -m 0777 /home/vagrant/data
     cp gopath/src/github.com/minio/minio/ext-conf/minio.json /home/vagrant/
-    LD_LIBRARY_PATH=/opt/mapr/lib sudo ./minio server /home/vagrant/data -M /home/vagrant/minio.json
+    sudo ./minio server /home/vagrant/data -M /home/vagrant/minio.json
 ```
 
 Enjoy the endless fun!
