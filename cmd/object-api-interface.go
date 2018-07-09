@@ -22,6 +22,7 @@ import (
 	"time"
 
 	"github.com/minio/minio-go/pkg/policy"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 	"github.com/minio/minio/pkg/madmin"
 )
@@ -74,6 +75,10 @@ type ObjectLayer interface {
 	GetBucketPolicy(context.Context, string) (policy.BucketAccessPolicy, error)
 	RefreshBucketPolicy(context.Context, string) error
 	DeleteBucketPolicy(context.Context, string) error
+
+	// Bucket notification operations
+	GetBucketNotification(context.Context, string) (*event.Config, error)
+	PutBucketNotification(context.Context, string, *event.Config) error
 
 	// Supported operations check
 	IsNotificationSupported() bool

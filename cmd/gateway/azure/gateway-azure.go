@@ -37,6 +37,7 @@ import (
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 	sha256 "github.com/minio/sha256-simd"
 
@@ -1084,4 +1085,14 @@ func (a *azureObjects) DeleteBucketPolicy(ctx context.Context, bucket string) er
 	err := container.SetPermissions(perm, nil)
 	logger.LogIf(ctx, err)
 	return azureToObjectError(err)
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (a *azureObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (a *azureObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }

@@ -27,6 +27,7 @@ import (
 	"github.com/minio/minio-go/pkg/s3utils"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 
 	minio "github.com/minio/minio/cmd"
@@ -462,4 +463,14 @@ func (l *s3Objects) DeleteBucketPolicy(ctx context.Context, bucket string) error
 		return minio.ErrorRespToObjectError(err, bucket, "")
 	}
 	return nil
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *s3Objects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *s3Objects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }

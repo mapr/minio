@@ -35,6 +35,7 @@ import (
 	minio "github.com/minio/minio/cmd"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 )
 
@@ -603,4 +604,14 @@ func (t *tritonObjects) DeleteObject(ctx context.Context, bucket, object string)
 	}
 
 	return nil
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (t *tritonObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (t *tritonObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }

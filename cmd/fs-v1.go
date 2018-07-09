@@ -17,8 +17,10 @@
 package cmd
 
 import (
+	"bytes"
 	"context"
 	"encoding/hex"
+	"encoding/xml"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -32,6 +34,7 @@ import (
 
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio/cmd/logger"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 	"github.com/minio/minio/pkg/lock"
 	"github.com/minio/minio/pkg/madmin"
@@ -1132,6 +1135,47 @@ func (fs *FSObjects) RefreshBucketPolicy(ctx context.Context, bucket string) err
 		return err
 	}
 	return fs.bucketPolicies.SetBucketPolicy(bucket, policy)
+}
+
+func (fs *FSObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	configFile := path.Join(bucketMetaPrefix, bucket, bucketNotificationConfig)
+	var buffer bytes.Buffer
+	// Read entire content by setting size to -1
+	err = fs.GetObject(ctx, minioMetaBucket, configFile, 0, -1, &buffer, "")
+	if err != nil {
+		// Ignore if err is ObjectNotFound or IncompleteBody when bucket is not configured with notification
+		if isErrObjectNotFound(err) || isErrIncompleteBody(err) {
+			return nil, errNoSuchNotifications
+		}
+		logger.GetReqInfo(ctx).AppendTags("configFile", configFile)
+		logger.LogIf(ctx, err)
+		return nil, err
+	}
+
+	// Return NoSuchNotifications on empty content.
+	if buffer.Len() == 0 {
+		return nil, errNoSuchNotifications
+	}
+
+	config, err = event.ParseConfig(&buffer, globalServerConfig.GetRegion(), globalNotificationSys.targetList)
+	logger.LogIf(ctx, err)
+	return config, err
+}
+
+func (fs *FSObjects) PutBucketNotification(ctx context.Context, bucket string, config *event.Config) error {
+	data, err := xml.Marshal(config)
+	if err != nil {
+		return err
+	}
+
+	configFile := path.Join(bucketConfigPrefix, bucket, bucketNotificationConfig)
+	hashReader, err := hash.NewReader(bytes.NewReader(data), int64(len(data)), "", getSHA256Hash(data))
+	if err != nil {
+		return err
+	}
+
+	_, err = fs.PutObject(context.Background(), minioMetaBucket, configFile, hashReader, nil)
+	return err
 }
 
 // IsNotificationSupported returns whether bucket notification is applicable for this layer.

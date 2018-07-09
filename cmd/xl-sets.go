@@ -30,6 +30,7 @@ import (
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/bpool"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 	"github.com/minio/minio/pkg/madmin"
 	"github.com/minio/minio/pkg/sync/errgroup"
@@ -1504,4 +1505,14 @@ func (s *xlSets) ClearLocks(ctx context.Context, lockInfo []VolumeLockInfo) erro
 		set.ClearLocks(ctx, lockInfo)
 	}
 	return nil
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (s xlSets) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, errServerNotInitialized
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (s xlSets) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return errServerNotInitialized
 }

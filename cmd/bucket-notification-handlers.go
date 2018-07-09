@@ -61,14 +61,14 @@ func (api objectAPIHandlers) GetBucketNotificationHandler(w http.ResponseWriter,
 	vars := mux.Vars(r)
 	bucketName := vars["bucket"]
 
-	_, err := objAPI.GetBucketInfo(ctx, bucketName)
+	_, err := objAPI.GetBucketNotification(ctx, bucketName)
 	if err != nil {
 		writeErrorResponse(w, toAPIErrorCode(err), r.URL)
 		return
 	}
 
 	// Attempt to successfully load notification config.
-	nConfig, err := readNotificationConfig(ctx, objAPI, bucketName)
+	nConfig, err := objAPI.GetBucketNotification(ctx, bucketName)
 	if err != nil {
 		// Ignore errNoSuchNotifications to comply with AWS S3.
 		if err != errNoSuchNotifications {
@@ -112,12 +112,6 @@ func (api objectAPIHandlers) PutBucketNotificationHandler(w http.ResponseWriter,
 	vars := mux.Vars(r)
 	bucketName := vars["bucket"]
 
-	_, err := objectAPI.GetBucketInfo(ctx, bucketName)
-	if err != nil {
-		writeErrorResponse(w, toAPIErrorCode(err), r.URL)
-		return
-	}
-
 	// PutBucketNotification always needs a Content-Length.
 	if r.ContentLength <= 0 {
 		writeErrorResponse(w, ErrMissingContentLength, r.URL)
@@ -125,7 +119,7 @@ func (api objectAPIHandlers) PutBucketNotificationHandler(w http.ResponseWriter,
 	}
 
 	var config *event.Config
-	config, err = event.ParseConfig(io.LimitReader(r.Body, r.ContentLength), globalServerConfig.GetRegion(), globalNotificationSys.targetList)
+	config, err := event.ParseConfig(io.LimitReader(r.Body, r.ContentLength), globalServerConfig.GetRegion(), globalNotificationSys.targetList)
 	if err != nil {
 		apiErr := ErrMalformedXML
 		if event.IsEventError(err) {
@@ -136,7 +130,7 @@ func (api objectAPIHandlers) PutBucketNotificationHandler(w http.ResponseWriter,
 		return
 	}
 
-	if err = saveNotificationConfig(objectAPI, bucketName, config); err != nil {
+	if err = objectAPI.PutBucketNotification(ctx, bucketName, config); err != nil {
 		writeErrorResponse(w, toAPIErrorCode(err), r.URL)
 		return
 	}

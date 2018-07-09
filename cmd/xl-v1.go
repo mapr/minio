@@ -24,6 +24,7 @@ import (
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/bpool"
 	"github.com/minio/minio/pkg/disk"
+	"github.com/minio/minio/pkg/event"
 )
 
 // XL constants.
@@ -217,4 +218,14 @@ func getStorageInfo(disks []StorageAPI) StorageInfo {
 // StorageInfo - returns underlying storage statistics.
 func (xl xlObjects) StorageInfo(ctx context.Context) StorageInfo {
 	return getStorageInfo(xl.getDisks())
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (xl xlObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, errServerNotInitialized
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (xl xlObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return errServerNotInitialized
 }

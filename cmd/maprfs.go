@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 	"github.com/minio/minio/pkg/madmin"
 	"github.com/minio/minio-go/pkg/policy"
@@ -613,6 +614,23 @@ func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string)
 	defer self.shutdownContext()
 	return self.FSObjects.DeleteBucketPolicy(ctx, bucket)
 }
+
+func (self MapRFSObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	if err := self.prepareContext(bucket, "", "s3:GetBucketNotification"); err != nil {
+		return nil, err
+	}
+	defer self.shutdownContext()
+	return self.FSObjects.GetBucketNotification(ctx, bucket)
+}
+
+func (self MapRFSObjects) PutBucketNotification(ctx context.Context, bucket string, config *event.Config) error {
+	if err := self.prepareContext(bucket, "", "s3:PutBucketNotification"); err != nil {
+		return err
+	}
+	defer self.shutdownContext()
+	return self.FSObjects.PutBucketNotification(ctx, bucket, config)
+}
+
 
 func (self MapRFSObjects) IsNotificationSupported() bool {
 	return self.FSObjects.IsNotificationSupported()

@@ -36,6 +36,7 @@ import (
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 
 	"google.golang.org/api/googleapi"
@@ -1217,4 +1218,14 @@ func (l *gcsGateway) DeleteBucketPolicy(ctx context.Context, bucket string) erro
 	}
 
 	return nil
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *gcsGateway) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *gcsGateway) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }

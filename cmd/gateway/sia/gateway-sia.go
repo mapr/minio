@@ -39,6 +39,7 @@ import (
 	minio "github.com/minio/minio/cmd"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 )
 
@@ -626,4 +627,14 @@ func (s *siaObjects) deleteTempFileWhenUploadCompletes(ctx context.Context, temp
 	}
 
 	os.Remove(tempFile)
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (s *siaObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (s *siaObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }

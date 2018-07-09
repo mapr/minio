@@ -33,6 +33,7 @@ import (
 	"github.com/minio/minio-go/pkg/policy"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	h2 "github.com/minio/minio/pkg/hash"
 
 	minio "github.com/minio/minio/cmd"
@@ -783,4 +784,14 @@ func (l *b2Objects) DeleteBucketPolicy(ctx context.Context, bucket string) error
 	_, err = bkt.Update(l.ctx)
 	logger.LogIf(ctx, err)
 	return b2ToObjectError(err)
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *b2Objects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *b2Objects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }

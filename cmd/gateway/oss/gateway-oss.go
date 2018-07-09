@@ -34,6 +34,7 @@ import (
 	minio "github.com/minio/minio/cmd"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"github.com/minio/minio/pkg/event"
 	"github.com/minio/minio/pkg/hash"
 )
 
@@ -70,7 +71,7 @@ ENVIRONMENT VARIABLES:
 
   DOMAIN:
      MINIO_DOMAIN: To enable virtual-host-style requests, set this value to Minio host domain name.
-	
+
   CACHE:
      MINIO_CACHE_DRIVES: List of mounted drives or directories delimited by ";".
      MINIO_CACHE_EXCLUDE: List of cache exclusion patterns delimited by ";".
@@ -1038,4 +1039,14 @@ func (l *ossObjects) DeleteBucketPolicy(ctx context.Context, bucket string) erro
 		return ossToObjectError(err, bucket)
 	}
 	return nil
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *ossObjects) GetBucketNotification(ctx context.Context, bucket string) (config *event.Config, err error) {
+	return nil, minio.NotImplemented{}
+}
+
+// TODO: Re-implement bucket notifications for XL mode
+func (l *ossObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
+	return minio.NotImplemented{}
 }
