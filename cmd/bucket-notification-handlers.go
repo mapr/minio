@@ -61,12 +61,6 @@ func (api objectAPIHandlers) GetBucketNotificationHandler(w http.ResponseWriter,
 	vars := mux.Vars(r)
 	bucketName := vars["bucket"]
 
-	_, err := objAPI.GetBucketNotification(ctx, bucketName)
-	if err != nil {
-		writeErrorResponse(w, toAPIErrorCode(err), r.URL)
-		return
-	}
-
 	// Attempt to successfully load notification config.
 	nConfig, err := objAPI.GetBucketNotification(ctx, bucketName)
 	if err != nil {
