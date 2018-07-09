@@ -261,7 +261,8 @@ func (sys *NotificationSys) Init(objAPI ObjectLayer) error {
 
 	for _, bucket := range buckets {
 		ctx := logger.SetReqInfo(context.Background(), &logger.ReqInfo{BucketName: bucket.Name})
-		config, err := readNotificationConfig(ctx, objAPI, bucket.Name)
+
+		config, err := objAPI.GetBucketNotification(ctx, bucket.Name)
 		if err != nil {
 			if !IsErrIgnored(err, errDiskNotFound, errNoSuchNotifications) {
 				return err
@@ -503,19 +504,6 @@ func readConfig(ctx context.Context, objAPI ObjectLayer, configFile string) (*by
 	}
 
 	return &buffer, nil
-}
-
-func readNotificationConfig(ctx context.Context, objAPI ObjectLayer, bucketName string) (*event.Config, error) {
-	// Construct path to notification.xml for the given bucket.
-	configFile := path.Join(bucketConfigPrefix, bucketName, bucketNotificationConfig)
-	reader, err := readConfig(ctx, objAPI, configFile)
-	if err != nil {
-		return nil, err
-	}
-
-	config, err := event.ParseConfig(reader, globalServerConfig.GetRegion(), globalNotificationSys.targetList)
-	logger.LogIf(ctx, err)
-	return config, err
 }
 
 func saveNotificationConfig(objAPI ObjectLayer, bucketName string, config *event.Config) error {
