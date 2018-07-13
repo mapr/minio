@@ -1175,6 +1175,8 @@ func (fs *FSObjects) PutBucketNotification(ctx context.Context, bucket string, c
 	}
 
 	_, err = fs.PutObject(context.Background(), minioMetaBucket, configFile, hashReader, nil)
+	globalNotificationSys.RemoveNotification(bucket)
+	globalNotificationSys.AddRulesMap(bucket, config.ToRulesMap())
 	return err
 }
 
