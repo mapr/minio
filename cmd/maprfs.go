@@ -579,10 +579,6 @@ func (self MapRFSObjects) SetBucketPolicy(ctx context.Context, bucket string, po
 	}
 	defer self.shutdownContext()
 
-	err, uid, gid := getBucketOwner(bucket)
-	if err != nil || uid != self.uid || gid != self.gid {
-		return PrefixAccessDenied{}
-	}
 	return self.FSObjects.SetBucketPolicy(ctx, bucket, policy)
 }
 
@@ -592,10 +588,6 @@ func (self MapRFSObjects) GetBucketPolicy(ctx context.Context, bucket string) (p
 	}
 	defer self.shutdownContext()
 
-	err, uid, gid := getBucketOwner(bucket)
-	if err != nil || uid != self.uid || gid != self.gid {
-		return policy, PrefixAccessDenied{}
-	}
 	return self.FSObjects.GetBucketPolicy(ctx, bucket)
 }
 
