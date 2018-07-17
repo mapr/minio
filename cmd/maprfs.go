@@ -322,7 +322,7 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 }
 
 func (self MapRFSObjects) GetBucketInfo(ctx context.Context, bucket string) (bucketInfo BucketInfo, err error) {
-	if err = self.prepareContext(bucket, "", "s3:GetBucketInfo"); err != nil {
+	if err = self.prepareContext(bucket, "", "s3:ListBucket"); err != nil {
 		return bucketInfo, err
 	}
 	defer self.shutdownContext()
