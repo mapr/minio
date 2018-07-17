@@ -17,6 +17,7 @@
 package cmd
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -380,10 +381,11 @@ func getNotificationTargets(config *serverConfig) (*event.TargetList, error) {
 		if args.Enable {
 			newTarget, err := target.NewKafkaTarget(id, args)
 			if err != nil {
-				return nil, err
+				logger.LogIf(context.Background(), err)
+				continue
 			}
 			if err = targetList.Add(newTarget); err != nil {
-				return nil, err
+				logger.LogIf(context.Background(), err)
 			}
 		}
 	}
