@@ -83,12 +83,15 @@ export const fetchObjects = append => {
           dispatch(setSortOrder(false))
         }
         dispatch(setPrefixWritable(res.writable))
+        dispatch(alertActions.clear())
       })
       .catch(err => {
+        dispatch(setList([]))
+        dispatch(setSortBy(""))
+        dispatch(setSortOrder(false))
         dispatch(alertActions.set({ type: "danger", message: err.message }))
-        history.push("/login")
       })
-    } 
+    }
   }
 }
 

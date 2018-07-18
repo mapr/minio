@@ -169,6 +169,9 @@ func getRequestAccessKeyId(r *http.Request) (accessKeyId string, err APIErrorCod
 	} else if isRequestPresignedSignatureV2(r) {
 		accessKey, _, err := getAuthFromQueryV2(r)
 		return accessKey, toAPIErrorCode(err)
+	} else if isRequestJWT(r) {
+		accessKey, err := getAuthFromJWT(r)
+		return accessKey, toAPIErrorCode(err)
 	}
 	accessKey, _, err := getAuthFromQueryV4(r, globalServerConfig.GetRegion()) // TODO here should been the function like "getAuthFromQueryV4
 	return accessKey, err
