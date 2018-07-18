@@ -27,6 +27,8 @@ import (
 	jwtreq "github.com/dgrijalva/jwt-go/request"
 	"github.com/minio/minio/cmd/logger"
 	"github.com/minio/minio/pkg/auth"
+	"strings"
+	"encoding/json"
 )
 
 const (
@@ -49,13 +51,64 @@ var (
 	errNoAuthToken          = errors.New("JWT token missing")
 )
 
+func getAuthFromRawJWT(jwtToken string) (string, string, error){
+	if  jwtToken == "" {
+		return "", "", errNoAuthToken
+	}
+
+	parts := strings.Split(jwtToken, ".")
+	claimsBytes, err := jwtgo.DecodeSegment(parts[1])
+
+	if err != nil {
+		return "", "", fmt.Errorf("JWT claims can not be decoded")
+	}
+
+	type ClaimsSubject struct {
+		Subject string `json:"sub"`
+	}
+
+	var f ClaimsSubject
+
+	err = json.Unmarshal(claimsBytes, &f)
+
+	if err != nil {
+		return "", "", fmt.Errorf("JWT claims can not be parsed")
+	}
+
+	key, err := globalTenantManager.GetSecretKey(f.Subject)
+
+	return f.Subject, key, nil
+}
+
+func getAuthFromJWT(r *http.Request) (string, error) {
+	jwtToken, err := jwtreq.AuthorizationHeaderExtractor.ExtractToken(r)
+
+	if err != nil {
+		return "", err
+	}
+
+	accessKey, _, err :=  getAuthFromRawJWT(jwtToken)
+
+	return accessKey, err
+}
+
 func authenticateJWT(accessKey, secretKey string, expiry time.Duration) (string, error) {
 	passedCredential, err := auth.CreateCredentials(accessKey, secretKey)
 	if err != nil {
 		return "", err
 	}
 
-	serverCred := globalServerConfig.GetCredential()
+	storedKey, err := globalTenantManager.GetSecretKey(accessKey)
+
+	if err != nil {
+		return "", err
+	}
+
+	serverCred, err := auth.CreateCredentials(accessKey, storedKey)
+
+	if err != nil {
+		return "", err
+	}
 
 	if serverCred.AccessKey != passedCredential.AccessKey {
 		return "", errInvalidAccessKeyID
@@ -89,7 +142,9 @@ func keyFuncCallback(jwtToken *jwtgo.Token) (interface{}, error) {
 		return nil, fmt.Errorf("Unexpected signing method: %v", jwtToken.Header["alg"])
 	}
 
-	return []byte(globalServerConfig.GetCredential().SecretKey), nil
+	_, key, err := getAuthFromRawJWT(jwtToken.Raw)
+
+	return []byte(key), err
 }
 
 func isAuthTokenValid(tokenString string) bool {
@@ -106,7 +161,7 @@ func isAuthTokenValid(tokenString string) bool {
 		logger.LogIf(context.Background(), err)
 		return false
 	}
-	return jwtToken.Valid && claims.Subject == globalServerConfig.GetCredential().AccessKey
+	return jwtToken.Valid
 }
 
 func isHTTPRequestValid(req *http.Request) bool {
@@ -127,9 +182,6 @@ func webRequestAuthenticate(req *http.Request) error {
 	}
 	if err = claims.Valid(); err != nil {
 		return errAuthentication
-	}
-	if claims.Subject != globalServerConfig.GetCredential().AccessKey {
-		return errInvalidAccessKeyID
 	}
 	if !jwtToken.Valid {
 		return errAuthentication
