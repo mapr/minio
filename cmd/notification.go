@@ -248,6 +248,15 @@ func (sys *NotificationSys) initListeners(ctx context.Context, objAPI ObjectLaye
 	return saveConfig(objAPI, configFile, data)
 }
 
+// Is error ARN not found
+func isErrARNNotFound(err error) bool {
+	switch err.(type) {
+	case *event.ErrARNNotFound:
+		return true
+	}
+	return false
+}
+
 // Init - initializes notification system from notification.xml and listener.json of all buckets.
 func (sys *NotificationSys) Init(objAPI ObjectLayer) error {
 	if objAPI == nil {
@@ -264,7 +273,7 @@ func (sys *NotificationSys) Init(objAPI ObjectLayer) error {
 
 		config, err := objAPI.GetBucketNotification(ctx, bucket.Name)
 		if err != nil {
-			if !IsErrIgnored(err, errDiskNotFound, errNoSuchNotifications) {
+			if !(IsErrIgnored(err, errDiskNotFound, errNoSuchNotifications)) && !(isErrARNNotFound(err)) {
 				return err
 			}
 		} else {
