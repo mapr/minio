@@ -349,6 +349,11 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 		}
 	}
 
+	// Remove bucket policy from the map
+	if err := self.FSObjects.bucketPolicies.DeleteBucketPolicy(bucket); err != nil {
+		return err
+	}
+
 	// Bypass fs impersonation since only user who created directory can delete it
 	return self.FSObjects.DeleteBucket(ctx, bucket)
 }
