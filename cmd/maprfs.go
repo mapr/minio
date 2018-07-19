@@ -5,6 +5,7 @@ import (
 	"errors"
 	"io"
 	"os"
+	"os/user"
 	"path"
 	"runtime"
 	"syscall"
@@ -281,6 +282,21 @@ func (self MapRFSObjects) shutdownContext() error {
 	}
 }
 
+func (self MapRFSObjects) setS3DefaultPolicy(ctx context.Context, tenant, bucket string) error {
+	var bucketPolicy policy.BucketAccessPolicy
+	err := parseBucketPolicy(strings.NewReader(defaultBucketPolicyJson), &bucketPolicy)
+	if err != nil {
+		return err
+	}
+	bucketPolicy.Statements[0].Principal.AWS = set.CreateStringSet(tenant)
+	bucketPolicy.Statements[0].Resources = set.CreateStringSet("arn:aws:s3:::" + bucket)
+	err = self.FSObjects.SetBucketPolicy(ctx, bucket, bucketPolicy)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
 func (self MapRFSObjects) Shutdown(ctx context.Context) error {
 	return self.FSObjects.Shutdown(ctx)
 }
@@ -299,14 +315,7 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 	}
 
 	if self.deploymentMode == "s3_only" {
-		var bucketPolicy policy.BucketAccessPolicy
-		err = parseBucketPolicy(strings.NewReader(defaultBucketPolicyJson), &bucketPolicy)
-		if err != nil {
-			return err
-		}
-		bucketPolicy.Statements[0].Principal.AWS = set.CreateStringSet(self.tenantName)
-		bucketPolicy.Statements[0].Resources = set.CreateStringSet("arn:aws:s3:::" + bucket)
-		err := self.FSObjects.SetBucketPolicy(ctx, bucket, bucketPolicy)
+		err = self.setS3DefaultPolicy(ctx, self.tenantName, bucket)
 		if err != nil {
 			return err
 		}
@@ -609,6 +618,16 @@ func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string)
 		return err
 	}
 	defer self.shutdownContext()
+
+	if self.deploymentMode == "s3_only" {
+		usr, err := user.Current()
+
+		if err != nil {
+			return err
+		}
+
+		return self.setS3DefaultPolicy(ctx, usr.Username, bucket)
+	}
 	return self.FSObjects.DeleteBucketPolicy(ctx, bucket)
 }
 
