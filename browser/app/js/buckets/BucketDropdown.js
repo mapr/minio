@@ -44,18 +44,19 @@ export class BucketDropdown extends React.Component {
   render() {
     const { bucket, showBucketPolicy, deleteBucket, currentBucket } = this.props
     return (
-      <Dropdown 
+      <Dropdown
         open = {this.state.showBucketDropdown}
         onToggle = {this.toggleDropdown.bind(this)}
-        className="bucket-dropdown" 
+        className="bucket-dropdown"
         id="bucket-dropdown"
       >
         <Dropdown.Toggle noCaret>
           <i className="zmdi zmdi-more-vert" />
         </Dropdown.Toggle>
         <Dropdown.Menu className="dropdown-menu-right">
+          {/*
           <li>
-            <a 
+            <a
               onClick={e => {
                 e.stopPropagation()
                 this.toggleDropdown()
@@ -65,8 +66,9 @@ export class BucketDropdown extends React.Component {
               Edit policy
             </a>
           </li>
+          */}
           <li>
-            <a 
+            <a
               onClick={e => {
                 e.stopPropagation()
                 this.toggleDropdown()
