@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 INSTALL_DIR=${MAPR_HOME:=/opt/mapr}
-S3SERVER_HOME=/opt/mapr/s3server/s3server-1.0.0
+S3SERVER_HOME=$INSTALL_DIR/s3server/s3server-1.0.0
 WARDEN_CONF=$S3SERVER_HOME/conf/warden.s3server.conf
-MINIO_BINARY=/opt/mapr/s3server/s3server-1.0.0/bin/minio
-MAPR_S3_CONFIG=s3server/s3server-1.0.0/conf/minio.json
+MINIO_BINARY=$S3SERVER_HOME/bin/minio
+MAPR_S3_CONFIG=$S3SERVER_HOME/conf/minio.json
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 sslKeyStore=${INSTALL_DIR}/conf/ssl_keystore
 storePass=mapr123
