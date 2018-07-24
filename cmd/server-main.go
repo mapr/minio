@@ -47,6 +47,10 @@ var serverFlags = []cli.Flag{
 		Value: "",
 		Usage: "Path to MapRFS-specific config to configure multitenancy and security scenario",
 	},
+	cli.BoolFlag{
+		Name: "check-config",
+		Usage: "Check configuration files, do pre-flight check and exit with status code",
+	},
 }
 
 var serverCmd = cli.Command{
@@ -301,6 +305,11 @@ func serverMain(ctx *cli.Context) {
 
 	// Set uptime time after object layer has initialized.
 	globalBootTime = UTCNow()
+
+	// Exit with correct status after all initialisations if pre-flight check enabled
+	if ctx.Bool("check-config") {
+		os.Exit(0)
+	}
 
 	handleSignals()
 }

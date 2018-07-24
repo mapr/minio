@@ -37,6 +37,12 @@ case $1 in
         mkdir $MINIO_DIR/logs
         echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
+        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --check-config >> $MINIO_DIR/logs/minio.log 2>&1
+        if [ $? -ne 0 ]
+        then
+            echo "Minio pre-flight check failed"
+            exit 1
+        fi
 	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_DIR/logs/minio.log 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
