@@ -62,6 +62,10 @@ var ServerFlags = []cli.Flag{
 		Value: 0,
 		Usage: "Log verbosity level (1 - Panic, 2 - Fatal, 3 - Error, 4 - Warning, 5 - Info, 6 - Debug).",
 	},
+	cli.BoolFlag{
+		Name:  "check-config",
+		Usage: "Check configuration files, do pre-flight check and exit with status code",
+	},
 }
 
 var serverCmd = cli.Command{
@@ -576,6 +580,11 @@ func serverMain(ctx *cli.Context) {
 	if globalActiveCred.Equal(auth.DefaultCredentials) {
 		msg := fmt.Sprintf("Detected default credentials '%s', please change the credentials immediately using 'MINIO_ROOT_USER' and 'MINIO_ROOT_PASSWORD'", globalActiveCred)
 		logger.StartupMessage(color.RedBold(msg))
+	}
+
+	// Exit with correct status after all initialisations if pre-flight check enabled
+	if ctx.Bool("check-config") {
+		os.Exit(0)
 	}
 
 	<-globalOSSignalCh
