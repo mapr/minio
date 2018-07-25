@@ -93,16 +93,15 @@ func initMetaVolumeFS(fsPath, fsUUID string) error {
 	if err := os.MkdirAll(metaTmpPath, 0777 | os.ModeSticky); err != nil {
 		return err
 	}
+
+	metaMultipartPath := pathJoin(fsPath, minioMetaMultipartBucket)
+	if err := os.MkdirAll(metaMultipartPath, 0777); err != nil {
+		return err
+	}
 	syscall.Umask(prevUmask)
 
 	metaBucketFolderPath := pathJoin(fsPath, minioMetaBucket, bucketMetaPrefix)
-	if err := os.MkdirAll(metaBucketFolderPath, 0777); err != nil {
-		return err
-	}
-
-	metaMultipartPath := pathJoin(fsPath, minioMetaMultipartBucket)
-	return os.MkdirAll(metaMultipartPath, 0777)
-
+	return os.MkdirAll(metaBucketFolderPath, 0777)
 }
 
 // NewFSObjectLayer - initialize new fs object layer.

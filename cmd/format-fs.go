@@ -22,6 +22,7 @@ import (
 	"io"
 	"os"
 	"path"
+	"syscall"
 	"time"
 
 	"github.com/minio/minio/cmd/logger"
@@ -112,7 +113,13 @@ func formatFSMigrateV1ToV2(ctx context.Context, wlk *lock.LockedFile, fsPath str
 		return err
 	}
 
-	if err = os.MkdirAll(path.Join(fsPath, minioMetaMultipartBucket), 0755); err != nil {
+	// We have to drop umask, to set real 0777 permissions,
+	// because multipart upload folder should be writable by any tenant
+	prevUmask := syscall.Umask(0)
+	err = os.MkdirAll(path.Join(fsPath, minioMetaMultipartBucket), 0777)
+	syscall.Umask(prevUmask)
+
+	if err != nil {
 		logger.LogIf(ctx, err)
 		return err
 	}
