@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 
+DATE=$(date '+%Y%m%d_%H%M%S')
 MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
 MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
-MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
+MINIO_LOG_FILE=$MINIO_DIR/logs/minio_$DATE.log
 DEPLOYMENT_TYPE_FILE=.deployment_type
 
 function checkSecurityScenario() {
@@ -25,6 +26,11 @@ function checkSecurityScenario() {
     echo $configMode > $fsPath/$DEPLOYMENT_TYPE_FILE
 }
 
+function removeOldLogs() {
+    #Remove logs older then 7 days
+    find $MINIO_DIR/logs/ -type f -name *.log -mtime +7 -exec rm -f {} +
+}
+
 if [ ! -d $MINIO_DIR ]
 then
    echo "Failed to start s3server"
@@ -33,17 +39,21 @@ fi
 
 case $1 in
     start)
-        rm -rf $MINIO_DIR/logs
-        mkdir $MINIO_DIR/logs
-        echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
+        if [ ! -d $MINIO_DIR/logs ]
+        then
+            mkdir $MINIO_DIR/logs
+        fi
+        removeOldLogs
+        echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
-        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --check-config >> $MINIO_DIR/logs/minio.log 2>&1
+        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --check-config >> $MINIO_LOG_FILE 2>&1
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_DIR/logs/minio.log 2>&1 & echo $! > $MINIO_PID_FILE
+        echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
+	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_LOG_FILE 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
