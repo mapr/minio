@@ -21,7 +21,6 @@ import (
 	"net/http"
 
 	"github.com/gorilla/mux"
-	"github.com/minio/minio/pkg/policy"
 )
 
 // Data types used for returning dummy access control
@@ -59,7 +58,7 @@ func (api objectAPIHandlers) GetBucketACLHandler(w http.ResponseWriter, r *http.
 	vars := mux.Vars(r)
 	bucket := vars["bucket"]
 
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -67,7 +66,7 @@ func (api objectAPIHandlers) GetBucketACLHandler(w http.ResponseWriter, r *http.
 
 	// Allow getBucketACL if policy action is set, since this is a dummy call
 	// we are simply re-purposing the bucketPolicyAction.
-	if s3Error := checkRequestAuthType(ctx, r, policy.GetBucketPolicyAction, bucket, ""); s3Error != ErrNone {
+	if s3Error := checkRequestAuthType(ctx, r, "s3:GetBucketPolicy", bucket, ""); s3Error != ErrNone {
 		writeErrorResponse(w, s3Error, r.URL)
 		return
 	}
@@ -82,6 +81,8 @@ func (api objectAPIHandlers) GetBucketACLHandler(w http.ResponseWriter, r *http.
 	acl := &accessControlPolicy{}
 	acl.AccessControlList.Grants = append(acl.AccessControlList.Grants, grant{
 		Grantee: grantee{
+			XMLNS: "http://www.w3.org/2001/XMLSchema-instance",
+			XMLXSI: "Canonical User",
 			Type: "CanonicalUser",
 		},
 		Permission: "FULL_CONTROL",
@@ -105,7 +106,7 @@ func (api objectAPIHandlers) GetObjectACLHandler(w http.ResponseWriter, r *http.
 	bucket := vars["bucket"]
 	object := vars["object"]
 
-	objAPI := api.ObjectAPI()
+	objAPI := api.ObjectAPI(r)
 	if objAPI == nil {
 		writeErrorResponse(w, ErrServerNotInitialized, r.URL)
 		return
@@ -113,7 +114,7 @@ func (api objectAPIHandlers) GetObjectACLHandler(w http.ResponseWriter, r *http.
 
 	// Allow getObjectACL if policy action is set, since this is a dummy call
 	// we are simply re-purposing the bucketPolicyAction.
-	if s3Error := checkRequestAuthType(ctx, r, policy.GetBucketPolicyAction, bucket, ""); s3Error != ErrNone {
+	if s3Error := checkRequestAuthType(ctx, r, "s3:GetBucketPolicy", bucket, ""); s3Error != ErrNone {
 		writeErrorResponse(w, s3Error, r.URL)
 		return
 	}
@@ -128,6 +129,8 @@ func (api objectAPIHandlers) GetObjectACLHandler(w http.ResponseWriter, r *http.
 	acl := &accessControlPolicy{}
 	acl.AccessControlList.Grants = append(acl.AccessControlList.Grants, grant{
 		Grantee: grantee{
+			XMLNS: "http://www.w3.org/2001/XMLSchema-instance",
+			XMLXSI: "Canonical User",
 			Type: "CanonicalUser",
 		},
 		Permission: "FULL_CONTROL",
