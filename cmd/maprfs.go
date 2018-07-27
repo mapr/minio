@@ -9,6 +9,7 @@ import (
 	"path"
 	"runtime"
 	"syscall"
+	"strconv"
 	"strings"
 	"time"
 
@@ -167,14 +168,31 @@ func (self MapRFSObjects) evaluateUidGid(bucket, object, action string) (error, 
 }
 
 func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy policy.BucketAccessPolicy, action string) (err error, uid int, gid int) {
-	err, bucketUid, bucketGid := getBucketOwner(bucket)
-	if err != nil {
-		// No such bucket
-		return BucketNotFound{bucket, ""}, 0, 0
+	if _, err := os.Stat(getBucketPath(bucket)); os.IsNotExist(err) {
+		return BucketNotFound{bucket, object}, 0, 0
 	}
 
-	if self.matchBucketPolicy(bucket, object, policy, action) || (self.uid == bucketUid && self.gid == bucketGid) {
+	if self.matchBucketPolicy(bucket, object, policy, action) {
 		return self.evaluateUidGid(bucket, object, action)
+	}
+
+	usr, err := user.Current()
+	if err != nil {
+		return err, 0, 0
+	}
+
+	if self.tenantName == usr.Username {
+		uid, err = strconv.Atoi(usr.Uid)
+		if err != nil {
+			return err, 0, 0
+		}
+
+		gid, err = strconv.Atoi(usr.Gid)
+		if err != nil {
+			return err, 0, 0
+		}
+
+		return nil, uid, gid
 	}
 
 	return PrefixAccessDenied{bucket, object}, 0, 0
@@ -221,9 +239,19 @@ func (self MapRFSObjects) prepareContextS3Only(bucket, object, action string) er
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 	if self.matchBucketPolicy(bucket, object, policy, action) {
 		return nil
-	} else {
-		return PrefixAccessDenied{bucket, object}
 	}
+
+	// Consider process was started from MapR superuser
+	usr, err := user.Current()
+	if err != nil {
+		return err
+	}
+
+	if self.tenantName == usr.Username {
+		return nil
+	}
+
+	return PrefixAccessDenied{bucket, object}
 }
 
 func (self MapRFSObjects) prepareContext(bucket, object, action string) error {
@@ -314,7 +342,7 @@ func (self MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket, lo
 		return err
 	}
 
-	if self.deploymentMode == "s3_only" {
+	if (self.deploymentMode == "s3_only") || (self.deploymentMode == "mixed") {
 		err = self.setS3DefaultPolicy(ctx, self.tenantName, bucket)
 		if err != nil {
 			return err
@@ -353,7 +381,13 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 			return err
 		}
 	} else {
-		if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") && (uid != self.uid || gid != self.gid) {
+		// Consider process was started from MapR superuser
+		usr, err := user.Current()
+		if err != nil {
+			return err
+		}
+
+		if !self.matchBucketPolicy(bucket, "", policy, "s3:DeleteBucket") && (uid != self.uid || gid != self.gid) && (self.tenantName != usr.Username) {
 			return PrefixAccessDenied{bucket, ""}
 		}
 	}
@@ -619,7 +653,7 @@ func (self MapRFSObjects) DeleteBucketPolicy(ctx context.Context, bucket string)
 	}
 	defer self.shutdownContext()
 
-	if self.deploymentMode == "s3_only" {
+	if (self.deploymentMode == "s3_only") || (self.deploymentMode == "mixed") {
 		usr, err := user.Current()
 
 		if err != nil {

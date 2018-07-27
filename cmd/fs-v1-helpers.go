@@ -446,3 +446,19 @@ func fsRemoveMeta(ctx context.Context, basePath, deletePath, tmpDir string) erro
 	}
 	return fsDeleteFile(ctx, basePath, deletePath)
 }
+
+func fsIsReadable(path string) error {
+	if err := checkPathLength(path); err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+
+	if err != nil {
+		return errFileAccessDenied
+	}
+
+	file.Close()
+
+	return nil
+}
