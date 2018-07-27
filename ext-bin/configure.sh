@@ -10,6 +10,7 @@ sslKeyStore=${INSTALL_DIR}/conf/ssl_keystore
 storePass=mapr123
 storeFormat=JKS
 storeFormatPKCS12=pkcs12
+isSecure=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/.*\(secure=\)\(true\|false\).*/\2/'`
 
 if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
     . ${MAPR_HOME}/server/common-ecosystem.sh
@@ -77,7 +78,11 @@ function extractPemKey() {
 
 function setupCertificate() {
     if [ ! -f $MAPR_HOME/conf/ssl_truststore.pem ]; then
-        $manageSSLKeys create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
+        if [ ! -f $MAPR_HOME/conf/ssl_truststore ]; then
+            $manageSSLKeys create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
+        else
+            $manageSSLKeys convert -N $(getClusterName) $MAPR_HOME/conf/ssl_truststore $MAPR_HOME/conf/ssl_truststore.pem
+        fi
     fi
     mkdir -p $S3SERVER_HOME/conf/certs
     cp $MAPR_HOME/conf/ssl_truststore.pem $S3SERVER_HOME/conf/certs/public.crt
@@ -93,7 +98,10 @@ function fixupMfsJson() {
     echo "Configuring S3Server to run on $fsPath"
 }
 
+if [ "x$isSecure" == "xtrue" ]; then
 setupCertificate
+fi
+
 fixupMfsJson
 tweakPermissions
 copyWardenFile
