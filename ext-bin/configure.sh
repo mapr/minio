@@ -61,7 +61,6 @@ function copyWardenFile() {
 
 function tweakPermissions() {
     chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/conf
-
     chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME
     chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/bin
     chmod 6150 $MINIO_BINARY
@@ -113,8 +112,6 @@ function setupCertificate() {
 }
 
 function fixupMfsJson() {
-
-
     sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
     echo "Configuring S3Server to run on $fsPath"
