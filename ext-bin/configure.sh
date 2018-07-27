@@ -12,11 +12,34 @@ storeFormat=JKS
 storeFormatPKCS12=pkcs12
 isSecure=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/.*\(secure=\)\(true\|false\).*/\2/'`
 
-if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
-    . ${MAPR_HOME}/server/common-ecosystem.sh
+if [ "x$1" == "x-c" ]; then
+    isClient=true
 else
-   echo "Failed to source common-ecosystem.sh"
-   exit 0
+    isClient=false
+fi
+
+if $isClient ; then
+    if [ -z "$2" ] ; then
+    echo "Please specify cluster user name"
+    exit 1
+    fi
+
+    MAPR_USER=$2
+    MAPR_GROUP=`id -gn $2`
+    clustername=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/\(.*\)\( secure\).*/\1/'`
+    nodename=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/\(.*\) \(.*\):.*/\2/'`
+else
+    if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
+        . ${MAPR_HOME}/server/common-ecosystem.sh
+    else
+       echo "Failed to source common-ecosystem.sh"
+       exit 0
+    fi
+
+    MAPR_USER=${MAPR_USER}
+    MAPR_GROUP=${MAPR_GROUP}
+    clustername=$(getClusterName)
+    nodename=$(hostname)
 fi
 
 if [ "$JAVA_HOME"x = "x" ]; then
@@ -79,9 +102,9 @@ function extractPemKey() {
 function setupCertificate() {
     if [ ! -f $MAPR_HOME/conf/ssl_truststore.pem ]; then
         if [ ! -f $MAPR_HOME/conf/ssl_truststore ]; then
-            $manageSSLKeys create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
+            $manageSSLKeys create -N $clustername -ug $MAPR_USER:$MAPR_GROUP
         else
-            $manageSSLKeys convert -N $(getClusterName) $MAPR_HOME/conf/ssl_truststore $MAPR_HOME/conf/ssl_truststore.pem
+            $manageSSLKeys convert -N $clustername $MAPR_HOME/conf/ssl_truststore $MAPR_HOME/conf/ssl_truststore.pem
         fi
     fi
     mkdir -p $S3SERVER_HOME/conf/certs
@@ -90,8 +113,7 @@ function setupCertificate() {
 }
 
 function fixupMfsJson() {
-    clustername=$(getClusterName)
-    nodename=$(hostname)
+
 
     sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
@@ -104,4 +126,6 @@ fi
 
 fixupMfsJson
 tweakPermissions
+if [ "x$isClient" == "xfalse" ] ; then
 copyWardenFile
+fi
