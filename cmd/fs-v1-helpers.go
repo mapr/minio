@@ -303,7 +303,7 @@ func fsCreateFile(ctx context.Context, filePath string, reader io.Reader, buf []
 		return 0, err
 	}
 
-	writer, err := lock.Open(filePath, os.O_CREATE|os.O_WRONLY, 0644)
+	writer, err := lock.Open(filePath, os.O_CREATE|os.O_WRONLY, 0640)
 	if err != nil {
 		return 0, osErrToFSFileErr(err)
 	}
@@ -445,4 +445,20 @@ func fsRemoveMeta(ctx context.Context, basePath, deletePath, tmpDir string) erro
 		return fsDeleteFile(ctx, tmpDir, tmpPath)
 	}
 	return fsDeleteFile(ctx, basePath, deletePath)
+}
+
+func fsIsReadable(path string) error {
+	if err := checkPathLength(path); err != nil {
+		return err
+	}
+
+	file, err := os.OpenFile(path, os.O_RDONLY, 0666)
+
+	if err != nil {
+		return errFileAccessDenied
+	}
+
+	file.Close()
+
+	return nil
 }

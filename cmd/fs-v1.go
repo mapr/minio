@@ -592,6 +592,10 @@ func (fs *FSObjects) getObjectInfo(ctx context.Context, bucket, object string) (
 		return oi, toObjectErr(err, bucket, object)
 	}
 
+	if err = fsIsReadable(pathJoin(fs.fsPath, bucket, object)); err != nil {
+		return oi, toObjectErr(err, bucket, object)
+	}
+
 	return fsMeta.ToObjectInfo(bucket, object, fi), nil
 }
 
