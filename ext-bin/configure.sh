@@ -11,23 +11,56 @@ storePass=mapr123
 storeFormat=JKS
 storeFormatPKCS12=pkcs12
 isSecure=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/.*\(secure=\)\(true\|false\).*/\2/'`
+isClient=false
 
-if [ "x$1" == "x-c" ]; then
-    isClient=true
-else
-    isClient=false
-fi
+while [ ${#} -gt 0 ]; do
+  case "$1" in
+    -c)
+      isClient=true
+      shift 1;;
+    -u|--user)
+      MAPR_USER=`id -u $2`
+      shift 2;;
+    -g|--group)
+      MAPR_GROUP=`id -g $2`
+      shift 2;;
+    -p|--path)
+      optionalFsPath=$2
+      if [ ! -d "$optionalFsPath" ]; then
+      echo "Path does not exist."
+      echo "Please specify path for file system"
+      exit 1
+      fi
+      shift 2;;
+    *)
+      shift 1
+  esac
+done
+
+
 
 if $isClient ; then
-    if [ -z "$2" ] ; then
-    echo "Please specify cluster user name"
+    if [ "${MAPR_USER}"x == "x" ] ; then
+    echo "Please specify user name"
+    errExit=true
+    fi
+
+    if [ "${MAPR_GROUP}"x == "x" ] ; then
+    echo "Please specify group name"
+    errExit=true
+    fi
+
+    if [ "${optionalFsPath}"x == "x" ] ; then
+    echo "Please specify path for file system"
+    errExit=true
+    fi
+
+    if [ "$errExit"x == "truex" ] ; then
     exit 1
     fi
 
-    MAPR_USER=$2
-    MAPR_GROUP=`id -gn $2`
     clustername=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/\(.*\)\( secure\).*/\1/'`
-    nodename=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/\(.*\) \(.*\):.*/\2/'`
+
 else
     if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
         . ${MAPR_HOME}/server/common-ecosystem.sh
@@ -112,7 +145,11 @@ function setupCertificate() {
 }
 
 function fixupMfsJson() {
-    sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
+    if [ "$optionalFsPath"x == "x" ]; then
+        sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
+    else
+        sed -i "s#\(\"fsPath\": \"\)\(.*\)\(\",\)#\1$optionalFsPath\3#" $MAPR_S3_CONFIG
+    fi
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
     echo "Configuring S3Server to run on $fsPath"
 }
