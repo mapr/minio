@@ -11,12 +11,68 @@ storePass=mapr123
 storeFormat=JKS
 storeFormatPKCS12=pkcs12
 isSecure=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/.*\(secure=\)\(true\|false\).*/\2/'`
+isClient=false
 
-if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
-    . ${MAPR_HOME}/server/common-ecosystem.sh
+while [ ${#} -gt 0 ]; do
+  case "$1" in
+    -c)
+      isClient=true
+      shift 1;;
+    -u|--user)
+      MAPR_USER=`id -u $2`
+      shift 2;;
+    -g|--group)
+      MAPR_GROUP=`id -g $2`
+      shift 2;;
+    -p|--path)
+      optionalFsPath=$2
+      if [ ! -d "$optionalFsPath" ]; then
+      echo "Path does not exist."
+      echo "Please specify path for file system"
+      exit 1
+      fi
+      shift 2;;
+    *)
+      shift 1
+  esac
+done
+
+
+
+if $isClient ; then
+    if [ "${MAPR_USER}"x == "x" ] ; then
+    echo "Please specify user name"
+    errExit=true
+    fi
+
+    if [ "${MAPR_GROUP}"x == "x" ] ; then
+    echo "Please specify group name"
+    errExit=true
+    fi
+
+    if [ "${optionalFsPath}"x == "x" ] ; then
+    echo "Please specify path for file system"
+    errExit=true
+    fi
+
+    if [ "$errExit"x == "truex" ] ; then
+    exit 1
+    fi
+
+    clustername=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/\(.*\)\( secure\).*/\1/'`
+
 else
-   echo "Failed to source common-ecosystem.sh"
-   exit 0
+    if [ -e "${MAPR_HOME}/server/common-ecosystem.sh" ]; then
+        . ${MAPR_HOME}/server/common-ecosystem.sh
+    else
+       echo "Failed to source common-ecosystem.sh"
+       exit 0
+    fi
+
+    MAPR_USER=${MAPR_USER}
+    MAPR_GROUP=${MAPR_GROUP}
+    clustername=$(getClusterName)
+    nodename=$(hostname)
 fi
 
 if [ "$JAVA_HOME"x = "x" ]; then
@@ -38,7 +94,6 @@ function copyWardenFile() {
 
 function tweakPermissions() {
     chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/conf
-
     chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME
     chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/bin
     chmod 6150 $MINIO_BINARY
@@ -79,9 +134,9 @@ function extractPemKey() {
 function setupCertificate() {
     if [ ! -f $MAPR_HOME/conf/ssl_truststore.pem ]; then
         if [ ! -f $MAPR_HOME/conf/ssl_truststore ]; then
-            $manageSSLKeys create -N $(getClusterName) -ug $MAPR_USER:$MAPR_GROUP
+            $manageSSLKeys create -N $clustername -ug $MAPR_USER:$MAPR_GROUP
         else
-            $manageSSLKeys convert -N $(getClusterName) $MAPR_HOME/conf/ssl_truststore $MAPR_HOME/conf/ssl_truststore.pem
+            $manageSSLKeys convert -N $clustername $MAPR_HOME/conf/ssl_truststore $MAPR_HOME/conf/ssl_truststore.pem
         fi
     fi
     mkdir -p $S3SERVER_HOME/conf/certs
@@ -90,10 +145,11 @@ function setupCertificate() {
 }
 
 function fixupMfsJson() {
-    clustername=$(getClusterName)
-    nodename=$(hostname)
-
-    sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
+    if [ "$optionalFsPath"x == "x" ]; then
+        sed -i -e "s/\${cluster}/$clustername/" -e "s/\${node}/$nodename/" $MAPR_S3_CONFIG
+    else
+        sed -i "s#\(\"fsPath\": \"\)\(.*\)\(\",\)#\1$optionalFsPath\3#" $MAPR_S3_CONFIG
+    fi
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
     echo "Configuring S3Server to run on $fsPath"
 }
@@ -104,4 +160,6 @@ fi
 
 fixupMfsJson
 tweakPermissions
+if [ "x$isClient" == "xfalse" ] ; then
 copyWardenFile
+fi
