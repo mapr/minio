@@ -46,8 +46,8 @@ case $1 in
         removeOldLogs
 
         #Setting port
-        if [ -f "$MINIO_DIR/conf/warden.s3server.conf" ]; then
-        port=$(cat $MINIO_DIR/conf/warden.s3server.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
+        if [ -f "/opt/mapr/conf/conf.d/warden.s3server.conf" ]; then
+        port=$(cat /opt/mapr/conf/conf.d/warden.s3server.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
         sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
         else
         port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,4\}\)\"/\1/')
