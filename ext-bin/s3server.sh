@@ -44,16 +44,25 @@ case $1 in
             mkdir $MINIO_DIR/logs
         fi
         removeOldLogs
+
+        #Setting port
+        if [ -f "$MINIO_DIR/conf/warden.s3server.conf" ]; then
+        port=$(cat $MINIO_DIR/conf/warden.s3server.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
+        sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
+        else
+        port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,4\}\)\"/\1/')
+        fi
+
         echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
-        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --check-config >> $MINIO_LOG_FILE 2>&1
+        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port  --check-config >> $MINIO_LOG_FILE 2>&1
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
         echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_LOG_FILE 2>&1 & echo $! > $MINIO_PID_FILE
+	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port >> $MINIO_LOG_FILE 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
