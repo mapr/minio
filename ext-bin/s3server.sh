@@ -1,8 +1,9 @@
 #!/usr/bin/env bash
 
 DATE=$(date '+%Y%m%d_%H%M%S')
-MINIO_DIR=/opt/mapr/s3server/s3server-1.0.0
-MINIO_PID_FILE=/opt/mapr/pid/s3server.pid
+MAPR_HOME=/opt/mapr
+MINIO_DIR=$MAPR_HOME/s3server/s3server-1.0.0
+MINIO_PID_FILE=$MAPR_HOME/pid/s3server.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio_$DATE.log
 DEPLOYMENT_TYPE_FILE=.deployment_type
@@ -44,16 +45,25 @@ case $1 in
             mkdir $MINIO_DIR/logs
         fi
         removeOldLogs
+
+        #Setting port
+        if [ -f "$MAPR_HOME/conf/conf.d/warden.s3server.conf" ]; then
+        port=$(cat $MAPR_HOME/conf/conf.d/warden.s3server.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
+        sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
+        else
+        port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,4\}\)\"/\1/')
+        fi
+
         echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
-        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --check-config >> $MINIO_LOG_FILE 2>&1
+        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port  --check-config >> $MINIO_LOG_FILE 2>&1
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
         echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG >> $MINIO_LOG_FILE 2>&1 & echo $! > $MINIO_PID_FILE
+	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port >> $MINIO_LOG_FILE 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
