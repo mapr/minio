@@ -84,6 +84,16 @@ func actionIsWritable(action string) bool {
 	return ok
 }
 
+var readableActions = set.StringSet{
+	"s3:GetObject": {},
+}
+
+/// Returns true if a given action requires write permission
+func actionIsReadable(action string) bool {
+	_, ok := readableActions[action];
+	return ok
+}
+
 const defaultBucketPolicyJson = `
 {
    "Version": "version",
@@ -204,6 +214,14 @@ func (self MapRFSObjects) prepareContextMixed(bucket, object, action string) err
 	err, uid, gid := self.evaluateBucketPolicy(bucket, object, policy, action)
 	if err != nil {
 		return err
+	}
+
+	// For mixed mode allow readable actions to bypass filesystem check, set effective user same as file owner
+	if actionIsReadable(action) {
+		err, uid, _ = getObjectOwner(bucket, object)
+		if err != nil {
+			return err
+		}
 	}
 
 	runtime.LockOSThread()
