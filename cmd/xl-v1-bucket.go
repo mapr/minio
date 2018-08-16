@@ -332,3 +332,8 @@ func (xl xlObjects) IsNotificationSupported() bool {
 func (xl xlObjects) IsEncryptionSupported() bool {
 	return true
 }
+
+// Stub for GetBucketOwner
+func (xl xlObjects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", NotImplemented{}
+}

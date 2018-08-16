@@ -689,3 +689,17 @@ func (self MapRFSObjects) IsNotificationSupported() bool {
 func (self MapRFSObjects) IsEncryptionSupported() bool {
 	return self.FSObjects.IsEncryptionSupported()
 }
+
+func (self MapRFSObjects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	if self.deploymentMode == "fs_only" || self.deploymentMode == "mixed" {
+		err, uid, _ := getBucketOwner(bucket)
+		if err != nil {
+			return "Unknown", nil
+		}
+
+		name, err := globalTenantManager.GetTenantNameByUid(uid)
+		return name, nil
+	}
+
+	return "NotImplemented", nil
+}

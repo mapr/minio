@@ -592,12 +592,25 @@ func (web *webAPIHandlers) Upload(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(context.Background(), bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object created event.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectCreatedPut,
-		BucketName: bucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
+		EventName:   event.ObjectCreatedPut,
+		BucketName:  bucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		User:        user,
 	})
 }
 

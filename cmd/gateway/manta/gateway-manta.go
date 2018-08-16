@@ -615,3 +615,8 @@ func (t *tritonObjects) GetBucketNotification(ctx context.Context, bucket string
 func (t *tritonObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return minio.NotImplemented{}
 }
+
+// Stub for GetBucketOwner
+func (a *tritonObjects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", minio.NotImplemented{}
+}

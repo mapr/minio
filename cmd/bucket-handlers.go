@@ -383,11 +383,23 @@ func (api objectAPIHandlers) DeleteMultipleObjectsHandler(w http.ResponseWriter,
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify deleted event for objects.
 	for _, dobj := range deletedObjects {
 		sendEvent(eventArgs{
-			EventName:  event.ObjectRemovedDelete,
-			BucketName: bucket,
+			EventName:   event.ObjectRemovedDelete,
+			BucketName:  bucket,
+			BucketOwner: bucketOwner,
 			Object: ObjectInfo{
 				Name: dobj.ObjectName,
 			},
@@ -395,6 +407,7 @@ func (api objectAPIHandlers) DeleteMultipleObjectsHandler(w http.ResponseWriter,
 			UserAgent: r.UserAgent(),
 			Host:      host,
 			Port:      port,
+			User:      user,
 		})
 	}
 }
@@ -637,15 +650,28 @@ func (api objectAPIHandlers) PostPolicyBucketHandler(w http.ResponseWriter, r *h
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object created event.
 	defer sendEvent(eventArgs{
-		EventName:  event.ObjectCreatedPost,
-		BucketName: objInfo.Bucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
-		UserAgent:  r.UserAgent(),
-		Host:       host,
-		Port:       port,
+		EventName:   event.ObjectCreatedPost,
+		BucketName:  objInfo.Bucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		UserAgent:   r.UserAgent(),
+		Host:        host,
+		Port:        port,
+		User:        user,
 	})
 
 	if successRedirect != "" {

@@ -400,13 +400,15 @@ func NewNotificationSys(config *serverConfig, endpoints EndpointList) (*Notifica
 }
 
 type eventArgs struct {
-	EventName  event.Name
-	BucketName string
-	Object     ObjectInfo
-	ReqParams  map[string]string
-	Host       string
-	Port       string
-	UserAgent  string
+	EventName   event.Name
+	BucketName  string
+	BucketOwner string
+	Object      ObjectInfo
+	ReqParams   map[string]string
+	Host        string
+	Port        string
+	UserAgent   string
+	User        string
 }
 
 // ToEvent - converts to notification event.
@@ -422,6 +424,15 @@ func (args eventArgs) ToEvent() event.Event {
 	}
 
 	creds := globalServerConfig.GetCredential()
+	user := args.User
+	if user == "" {
+		user = creds.AccessKey
+	}
+	bucketOwner := args.BucketOwner
+	if bucketOwner == "" {
+		bucketOwner = creds.AccessKey
+	}
+
 	eventTime := UTCNow()
 	uniqueID := fmt.Sprintf("%X", eventTime.UnixNano())
 
@@ -431,7 +442,7 @@ func (args eventArgs) ToEvent() event.Event {
 		AwsRegion:         globalServerConfig.GetRegion(),
 		EventTime:         eventTime.Format(event.AMZTimeFormat),
 		EventName:         args.EventName,
-		UserIdentity:      event.Identity{creds.AccessKey},
+		UserIdentity:      event.Identity{user},
 		RequestParameters: args.ReqParams,
 		ResponseElements: map[string]string{
 			"x-amz-request-id":        uniqueID,
@@ -442,7 +453,7 @@ func (args eventArgs) ToEvent() event.Event {
 			ConfigurationID: "Config",
 			Bucket: event.Bucket{
 				Name:          args.BucketName,
-				OwnerIdentity: event.Identity{creds.AccessKey},
+				OwnerIdentity: event.Identity{bucketOwner},
 				ARN:           bucketARNPrefix + args.BucketName,
 			},
 			Object: event.Object{

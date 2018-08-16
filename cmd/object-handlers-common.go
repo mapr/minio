@@ -245,10 +245,22 @@ func deleteObject(ctx context.Context, obj ObjectLayer, cache CacheObjectLayer, 
 	// Get host and port from Request.RemoteAddr.
 	host, port, _ := net.SplitHostPort(r.RemoteAddr)
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := obj.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object deleted event.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectRemovedDelete,
-		BucketName: bucket,
+		EventName:   event.ObjectRemovedDelete,
+		BucketName:  bucket,
+		BucketOwner: bucketOwner,
 		Object: ObjectInfo{
 			Name: object,
 		},
@@ -256,6 +268,7 @@ func deleteObject(ctx context.Context, obj ObjectLayer, cache CacheObjectLayer, 
 		UserAgent: r.UserAgent(),
 		Host:      host,
 		Port:      port,
+		User:      user,
 	})
 
 	return nil

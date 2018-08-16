@@ -203,15 +203,28 @@ func (api objectAPIHandlers) GetObjectHandler(w http.ResponseWriter, r *http.Req
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object accessed via a GET request.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectAccessedGet,
-		BucketName: bucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
-		UserAgent:  r.UserAgent(),
-		Host:       host,
-		Port:       port,
+		EventName:   event.ObjectAccessedGet,
+		BucketName:  bucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		UserAgent:   r.UserAgent(),
+		Host:        host,
+		Port:        port,
+		User:        user,
 	})
 }
 
@@ -286,15 +299,28 @@ func (api objectAPIHandlers) HeadObjectHandler(w http.ResponseWriter, r *http.Re
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object accessed via a HEAD request.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectAccessedHead,
-		BucketName: bucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
-		UserAgent:  r.UserAgent(),
-		Host:       host,
-		Port:       port,
+		EventName:   event.ObjectAccessedHead,
+		BucketName:  bucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		UserAgent:   r.UserAgent(),
+		Host:        host,
+		Port:        port,
+		User:        user,
 	})
 }
 
@@ -551,15 +577,28 @@ func (api objectAPIHandlers) CopyObjectHandler(w http.ResponseWriter, r *http.Re
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, dstBucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object created event.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectCreatedCopy,
-		BucketName: dstBucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
-		UserAgent:  r.UserAgent(),
-		Host:       host,
-		Port:       port,
+		EventName:   event.ObjectCreatedCopy,
+		BucketName:  dstBucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		UserAgent:   r.UserAgent(),
+		Host:        host,
+		Port:        port,
+		User:        user,
 	})
 }
 
@@ -753,15 +792,28 @@ func (api objectAPIHandlers) PutObjectHandler(w http.ResponseWriter, r *http.Req
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object created event.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectCreatedPut,
-		BucketName: bucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
-		UserAgent:  r.UserAgent(),
-		Host:       host,
-		Port:       port,
+		EventName:   event.ObjectCreatedPut,
+		BucketName:  bucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		UserAgent:   r.UserAgent(),
+		Host:        host,
+		Port:        port,
+		User:        user,
 	})
 }
 
@@ -1420,15 +1472,28 @@ func (api objectAPIHandlers) CompleteMultipartUploadHandler(w http.ResponseWrite
 		host, port = "", ""
 	}
 
+	// Get user name
+	user, apiErr := getRequestAccessKeyId(r)
+	if apiErr != ErrNone {
+		user = ""
+	}
+
+	bucketOwner, err := objectAPI.GetBucketOwner(ctx, bucket)
+	if err != nil {
+		bucketOwner = ""
+	}
+
 	// Notify object created event.
 	sendEvent(eventArgs{
-		EventName:  event.ObjectCreatedCompleteMultipartUpload,
-		BucketName: bucket,
-		Object:     objInfo,
-		ReqParams:  extractReqParams(r),
-		UserAgent:  r.UserAgent(),
-		Host:       host,
-		Port:       port,
+		EventName:   event.ObjectCreatedCompleteMultipartUpload,
+		BucketName:  bucket,
+		BucketOwner: bucketOwner,
+		Object:      objInfo,
+		ReqParams:   extractReqParams(r),
+		UserAgent:   r.UserAgent(),
+		Host:        host,
+		Port:        port,
+		User:        user,
 	})
 }
 

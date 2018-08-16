@@ -638,3 +638,8 @@ func (s *siaObjects) GetBucketNotification(ctx context.Context, bucket string) (
 func (s *siaObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return minio.NotImplemented{}
 }
+
+// Stub for GetBucketOwner
+func (l *siaObjects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", minio.NotImplemented{}
+}

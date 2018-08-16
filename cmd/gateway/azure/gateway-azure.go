@@ -1096,3 +1096,8 @@ func (a *azureObjects) GetBucketNotification(ctx context.Context, bucket string)
 func (a *azureObjects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return minio.NotImplemented{}
 }
+
+// Stub for GetBucketOwner
+func (a *azureObjects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", minio.NotImplemented{}
+}

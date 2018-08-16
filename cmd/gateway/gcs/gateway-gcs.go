@@ -1229,3 +1229,8 @@ func (l *gcsGateway) GetBucketNotification(ctx context.Context, bucket string) (
 func (l *gcsGateway) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return minio.NotImplemented{}
 }
+
+// Stub for GetBucketOwner
+func (l *gcsGateway) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", minio.NotImplemented{}
+}

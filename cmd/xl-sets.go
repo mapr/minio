@@ -1516,3 +1516,8 @@ func (s xlSets) GetBucketNotification(ctx context.Context, bucket string) (confi
 func (s xlSets) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return errServerNotInitialized
 }
+
+// Stub for GetBucketOwner
+func (s xlSets) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", NotImplemented{}
+}

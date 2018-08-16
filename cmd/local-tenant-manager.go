@@ -207,3 +207,16 @@ func (self *LocalTenantManager) GetTenantName(accessKey string) (string, error) 
 
 	return "", errInvalidAccessKeyID
 }
+
+func (self *LocalTenantManager) GetTenantNameByUid(uid int) (string, error) {
+	self.mutex.RLock()
+	defer self.mutex.RUnlock()
+
+	for tenant, info := range self.tenants {
+		if info.uid == uid {
+			return tenant, nil
+		}
+	}
+
+	return "", errInvalidArgument
+}

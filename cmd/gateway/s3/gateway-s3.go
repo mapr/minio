@@ -474,3 +474,8 @@ func (l *s3Objects) GetBucketNotification(ctx context.Context, bucket string) (c
 func (l *s3Objects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return minio.NotImplemented{}
 }
+
+// Stub for GetBucketOwner
+func (l *s3Objects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", minio.NotImplemented{}
+}

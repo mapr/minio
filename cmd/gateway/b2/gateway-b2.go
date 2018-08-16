@@ -795,3 +795,8 @@ func (l *b2Objects) GetBucketNotification(ctx context.Context, bucket string) (c
 func (l *b2Objects) PutBucketNotification(ctx context.Context, bucketname string, config *event.Config) error {
 	return minio.NotImplemented{}
 }
+
+// Stub for GetBucketOwner
+func (l *b2Objects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", minio.NotImplemented{}
+}

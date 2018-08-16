@@ -40,6 +40,7 @@ type ObjectLayer interface {
 	DeleteBucket(ctx context.Context, bucket string) error
 	ListObjects(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (result ListObjectsInfo, err error)
 	ListObjectsV2(ctx context.Context, bucket, prefix, continuationToken, delimiter string, maxKeys int, fetchOwner bool, startAfter string) (result ListObjectsV2Info, err error)
+	GetBucketOwner(ctx context.Context, bucket string) (owner string, err error)
 
 	// Object operations.
 	GetObject(ctx context.Context, bucket, object string, startOffset int64, length int64, writer io.Writer, etag string) (err error)

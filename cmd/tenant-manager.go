@@ -12,4 +12,7 @@ type TenantManager interface {
 
 	/// Get human-readable tenant name - used to identify tenants in IAM bucket policies
 	GetTenantName(accessKey string) (tenantName string, err error)
+
+	/// Look for tenant name by UID
+	GetTenantNameByUid(uid int) (string, error)
 }

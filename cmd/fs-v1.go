@@ -1192,3 +1192,8 @@ func (fs *FSObjects) IsNotificationSupported() bool {
 func (fs *FSObjects) IsEncryptionSupported() bool {
 	return true
 }
+
+// Stub for GetBucketOwner
+func (fs *FSObjects) GetBucketOwner(ctx context.Context, bucket string) (owner string, err error) {
+	return "", NotImplemented{}
+}
