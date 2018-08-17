@@ -23,7 +23,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"sort"
 	"strings"
 
 	"github.com/minio/minio-go/pkg/policy"
@@ -207,27 +206,28 @@ func checkBucketPolicyResources(bucket string, bucketPolicy policy.BucketAccessP
 		}
 	}
 
-	var resources []string
-	for resource := range resourceMap {
-		resources = append(resources, resourcePrefix(resource))
-	}
-
-	// Sort strings as shorter first.
-	sort.Strings(resources)
-
-	for len(resources) > 1 {
-		var resource string
-		resource, resources = resources[0], resources[1:]
-		// Loop through all resources, if one of them matches with
-		// previous shorter one, it means we have detected
-		// nesting. Reject such rules.
-		for _, otherResource := range resources {
-			// Common prefix reject such rules.
-			if hasPrefix(otherResource, resource) {
-				return ErrPolicyNesting
-			}
-		}
-	}
+	//FIXME: This test aborts valid policies. We should review policies implementation.
+	//var resources []string
+	//for resource := range resourceMap {
+	//	resources = append(resources, resourcePrefix(resource))
+	//}
+	//
+	//// Sort strings as shorter first.
+	//sort.Strings(resources)
+	//
+	//for len(resources) > 1 {
+	//	var resource string
+	//	resource, resources = resources[0], resources[1:]
+	//	// Loop through all resources, if one of them matches with
+	//	// previous shorter one, it means we have detected
+	//	// nesting. Reject such rules.
+	//	for _, otherResource := range resources {
+	//		// Common prefix reject such rules.
+	//		if hasPrefix(otherResource, resource) {
+	//			return ErrPolicyNesting
+	//		}
+	//	}
+	//}
 
 	// No errors found.
 	return ErrNone
