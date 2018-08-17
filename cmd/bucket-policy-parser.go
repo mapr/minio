@@ -165,6 +165,7 @@ var invalidPrefixActions = set.StringSet{
 	"s3:GetBucketLocation":          {},
 	"s3:ListBucket":                 {},
 	"s3:ListBucketMultipartUploads": {},
+	"s3:DeleteBucket"              : {},
 	// Add actions which do not honor prefixes.
 }
 
