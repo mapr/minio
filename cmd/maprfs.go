@@ -503,11 +503,17 @@ func (self MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, 
 
 	srcPolicy := self.FSObjects.bucketPolicies.GetBucketPolicy(srcBucket)
 
+	// Consider application running from superuser mapr
+	usr, err := user.Current()
+	if err != nil {
+		return objInfo, err
+	}
+
 	// GetObject operation is performed in another goroutine (and effectively another OS thread
 	// - see FsObjects implementation).
 	// So no need to impersonate here (other *free* OS threads ar running as mapr:mapr)
 	// Just check for enough permissions as per bucket policies
-	if !self.matchBucketPolicy(srcBucket, srcObject, srcPolicy, "s3:GetObject") && (self.uid != uid && self.gid != gid) {
+	if !self.matchBucketPolicy(srcBucket, srcObject, srcPolicy, "s3:GetObject") && (self.tenantName != usr.Username) && (self.uid != uid && self.gid != gid) {
 		return objInfo, PrefixAccessDenied{srcBucket, srcObject}
 	}
 
