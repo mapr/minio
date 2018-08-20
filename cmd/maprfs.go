@@ -209,6 +209,10 @@ func (self MapRFSObjects) evaluateBucketPolicy(bucket, object string, policy pol
 }
 
 func (self MapRFSObjects) prepareContextMixed(bucket, object, action string) error {
+	if _, err := os.Stat(getBucketPath(bucket)); os.IsNotExist(err) {
+		return BucketNotFound{bucket, object}
+	}
+
 	policy := self.FSObjects.bucketPolicies.GetBucketPolicy(bucket)
 
 	err, uid, gid := self.evaluateBucketPolicy(bucket, object, policy, action)
@@ -218,6 +222,13 @@ func (self MapRFSObjects) prepareContextMixed(bucket, object, action string) err
 
 	// For mixed mode allow readable actions to bypass filesystem check, set effective user same as file owner
 	if actionIsReadable(action) {
+
+		// Check is object exists
+		if _, err := os.Stat(getObjectPath(bucket, object)); os.IsNotExist(err) {
+			return ObjectNotFound{bucket, object}
+		}
+
+		// Set effective uid to objects owner
 		err, uid, _ = getObjectOwner(bucket, object)
 		if err != nil {
 			return err
@@ -410,13 +421,13 @@ func (self MapRFSObjects) DeleteBucket(ctx context.Context, bucket string) error
 		}
 	}
 
-	// Remove bucket policy from the map
-	if err := self.FSObjects.bucketPolicies.DeleteBucketPolicy(bucket); err != nil {
+	// Bypass fs impersonation since only user who created directory can delete it
+	if err := self.FSObjects.DeleteBucket(ctx, bucket); err != nil {
 		return err
 	}
 
-	// Bypass fs impersonation since only user who created directory can delete it
-	return self.FSObjects.DeleteBucket(ctx, bucket)
+	// Remove bucket policy from the map
+	return self.FSObjects.bucketPolicies.DeleteBucketPolicy(bucket)
 }
 
 func (self MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker, delimiter string, maxKeys int) (result ListObjectsInfo, err error) {
