@@ -18,38 +18,16 @@ package logger
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"go/build"
-	"os"
 	"path/filepath"
 	"runtime"
 	"strings"
-	"time"
-
-	"github.com/fatih/color"
 	c "github.com/minio/mc/pkg/console"
-)
-
-// global colors.
-var (
-	colorBold = color.New(color.Bold).SprintFunc()
-	colorRed  = color.New(color.FgRed).SprintfFunc()
+	"github.com/sirupsen/logrus"
 )
 
 var trimStrings []string
-
-// Level type
-type Level int8
-
-// Enumerated level types
-const (
-	Information Level = iota + 1
-	Error
-	Fatal
-)
-
-const loggerTimeFormat string = "15:04:05 MST 01/02/2006"
 
 var matchingFuncNames = [...]string{
 	"http.HandlerFunc.ServeHTTP",
@@ -58,77 +36,18 @@ var matchingFuncNames = [...]string{
 	// add more here ..
 }
 
-func (level Level) String() string {
-	var lvlStr string
-	switch level {
-	case Information:
-		lvlStr = "INFO"
-	case Error:
-		lvlStr = "ERROR"
-	case Fatal:
-		lvlStr = "FATAL"
-	}
-	return lvlStr
-}
-
-// Console interface describes the methods that needs to be implemented to satisfy the interface requirements.
-type Console interface {
-	json(msg string, args ...interface{})
-	quiet(msg string, args ...interface{})
-	pretty(msg string, args ...interface{})
-}
-
-func consoleLog(console Console, msg string, args ...interface{}) {
-	if jsonFlag {
-		console.json(msg, args...)
-	} else if quiet {
-		console.quiet(msg, args...)
-	} else {
-		console.pretty(msg, args...)
-	}
-}
-
-type traceEntry struct {
-	Message   string            `json:"message,omitempty"`
-	Source    []string          `json:"source,omitempty"`
-	Variables map[string]string `json:"variables,omitempty"`
-}
-type args struct {
-	Bucket string `json:"bucket,omitempty"`
-	Object string `json:"object,omitempty"`
-}
-
-type api struct {
-	Name string `json:"name,omitempty"`
-	Args *args  `json:"args,omitempty"`
-}
-
-type logEntry struct {
-	Level      string      `json:"level"`
-	Time       string      `json:"time"`
-	API        *api        `json:"api,omitempty"`
-	RemoteHost string      `json:"remotehost,omitempty"`
-	RequestID  string      `json:"requestID,omitempty"`
-	UserAgent  string      `json:"userAgent,omitempty"`
-	Message    string      `json:"message,omitempty"`
-	Trace      *traceEntry `json:"error,omitempty"`
-}
-
-// quiet: Hide startup messages if enabled
-// jsonFlag: Display in JSON format, if enabled
+// sink: logger output interface
 var (
-	quiet, jsonFlag bool
+	sink loggerSink
 )
 
 // EnableQuiet - turns quiet option on.
 func EnableQuiet() {
-	quiet = true
 }
 
 // EnableJSON - outputs logs in json format.
 func EnableJSON() {
-	jsonFlag = true
-	quiet = true
+	logrus.SetFormatter(new(logrus.JSONFormatter))
 }
 
 // Init sets the trimStrings to possible GOPATHs
@@ -167,6 +86,9 @@ func Init(goPath string) {
 	// paths like "{GOROOT}/src/github.com/minio/minio"
 	// and "{GOPATH}/src/github.com/minio/minio"
 	trimStrings = append(trimStrings, filepath.Join("github.com", "minio", "minio")+string(filepath.Separator))
+
+	sink, _ = getStdoutSink()
+	logrus.SetOutput(sink)
 }
 
 func trimTrace(f string) string {
@@ -174,17 +96,6 @@ func trimTrace(f string) string {
 		f = strings.TrimPrefix(filepath.ToSlash(f), filepath.ToSlash(trimString))
 	}
 	return filepath.FromSlash(f)
-}
-
-func getSource() string {
-	pc, file, lineNumber, ok := runtime.Caller(5)
-	if ok {
-		// Clean up the common prefixes
-		file = trimTrace(file)
-		_, funcName := filepath.Split(runtime.FuncForPC(pc).Name())
-		return fmt.Sprintf("%v:%v:%v()", file, lineNumber, funcName)
-	}
-	return ""
 }
 
 // getTrace method - creates and returns stack trace
@@ -219,12 +130,12 @@ func getTrace(traceLevel int) []string {
 	return trace
 }
 
-// LogIf :
-func LogIf(ctx context.Context, err error) {
-	if err == nil {
-		return
-	}
+// Reopen : This routine will reopen output sink if applicable. For use with external programs for log rotation.
+func Reopen() error {
+	return sink.Reopen()
+}
 
+func prepareEntry(ctx context.Context) *logrus.Entry {
 	req := GetReqInfo(ctx)
 
 	if req == nil {
@@ -241,77 +152,54 @@ func LogIf(ctx context.Context, err error) {
 		tags[entry.Key] = entry.Val
 	}
 
-	// Get the cause for the Error
-	message := err.Error()
 	// Get full stack trace
 	trace := getTrace(2)
-	// Output the formatted log message at console
-	var output string
-	if jsonFlag {
-		logJSON, err := json.Marshal(&logEntry{
-			Level:      Error.String(),
-			RemoteHost: req.RemoteHost,
-			RequestID:  req.RequestID,
-			UserAgent:  req.UserAgent,
-			Time:       time.Now().UTC().Format(time.RFC3339Nano),
-			API:        &api{Name: API, Args: &args{Bucket: req.BucketName, Object: req.ObjectName}},
-			Trace:      &traceEntry{Message: message, Source: trace, Variables: tags},
-		})
-		if err != nil {
-			panic(err)
-		}
-		output = string(logJSON)
-	} else {
-		// Add a sequence number and formatting for each stack trace
-		// No formatting is required for the first entry
-		for i, element := range trace {
-			trace[i] = fmt.Sprintf("%8v: %s", i+1, element)
-		}
 
-		tagString := ""
-		for key, value := range tags {
-			if value != "" {
-				if tagString != "" {
-					tagString += ", "
-				}
-				tagString += key + "=" + value
-			}
-		}
+	stdLog := logrus.StandardLogger()
+	entry := stdLog.WithField("api", API)
 
-		apiString := "API: " + API + "("
-		if req.BucketName != "" {
-			apiString = apiString + "bucket=" + req.BucketName
-		}
-		if req.ObjectName != "" {
-			apiString = apiString + ", object=" + req.ObjectName
-		}
-		apiString += ")"
-		timeString := "Time: " + time.Now().Format(loggerTimeFormat)
-
-		var requestID string
-		if req.RequestID != "" {
-			requestID = "\nRequestID: " + req.RequestID
-		}
-
-		var remoteHost string
-		if req.RemoteHost != "" {
-			remoteHost = "\nRemoteHost: " + req.RemoteHost
-		}
-
-		var userAgent string
-		if req.UserAgent != "" {
-			userAgent = "\nUserAgent: " + req.UserAgent
-		}
-
-		if len(tags) > 0 {
-			tagString = "\n       " + tagString
-		}
-
-		output = fmt.Sprintf("\n%s\n%s%s%s%s\nError: %s%s\n%s",
-			apiString, timeString, requestID, remoteHost, userAgent,
-			colorRed(colorBold(message)), tagString, strings.Join(trace, "\n"))
+	if req.RemoteHost != "" {
+		entry = entry.WithField("remotehost", req.RemoteHost)
 	}
-	fmt.Println(output)
+
+	if req.RequestID != "" {
+		entry = entry.WithField("requestID", req.RequestID)
+	}
+
+	if req.UserAgent != "" {
+		entry = entry.WithField("userAgent", req.UserAgent)
+	}
+
+	if req.BucketName != "" {
+		entry = entry.WithField("bucket", req.BucketName)
+	}
+
+	if req.ObjectName != "" {
+		entry = entry.WithField("object", req.ObjectName)
+	}
+
+	// Add trace log only for debug level
+	if stdLog.Level == logrus.DebugLevel {
+		if len(trace) > 0{
+			entry = entry.WithField("trace",  strings.Join(trace, "\n"))
+		}
+	}
+
+	if len(tags) > 0 {
+		entry = entry.WithField("tags", fmt.Sprint(tags))
+	}
+
+	return entry
+}
+
+// LogIf :
+func LogIf(ctx context.Context, err error) {
+	if err == nil {
+		return
+	}
+
+	entry := prepareEntry(ctx)
+	entry.Error(err.Error())
 }
 
 // CriticalIf :
@@ -319,8 +207,8 @@ func LogIf(ctx context.Context, err error) {
 // It'll be called for fatal error conditions during run-time
 func CriticalIf(ctx context.Context, err error) {
 	if err != nil {
-		LogIf(ctx, err)
-		os.Exit(1)
+		entry := prepareEntry(ctx)
+		entry.Fatal(err.Error())
 	}
 }
 
@@ -330,88 +218,19 @@ func CriticalIf(ctx context.Context, err error) {
 func FatalIf(err error, msg string, data ...interface{}) {
 	if err != nil {
 		if msg != "" {
-			consoleLog(fatalMessage, msg, data...)
+			logrus.Fatalf(msg, data...)
 		} else {
-			consoleLog(fatalMessage, err.Error())
+			logrus.Fatal(err.Error())
 		}
 	}
 }
 
-var fatalMessage fatalMsg
-
-type fatalMsg struct {
-}
-
-func (f fatalMsg) json(msg string, args ...interface{}) {
-	logJSON, err := json.Marshal(&logEntry{
-		Level: Fatal.String(),
-		Time:  time.Now().UTC().Format(time.RFC3339Nano),
-		Trace: &traceEntry{Message: fmt.Sprintf(msg, args...), Source: []string{getSource()}},
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(logJSON))
-	os.Exit(1)
-
-}
-
-func (f fatalMsg) quiet(msg string, args ...interface{}) {
-	f.pretty(msg, args...)
-}
-
-func (f fatalMsg) pretty(msg string, args ...interface{}) {
-	errMsg := fmt.Sprintf(msg, args...)
-	fmt.Println(colorRed(colorBold("Error: " + errMsg)))
-	os.Exit(1)
-}
-
-var info infoMsg
-
-type infoMsg struct {
-}
-
-func (i infoMsg) json(msg string, args ...interface{}) {
-	logJSON, err := json.Marshal(&logEntry{
-		Level:   Information.String(),
-		Message: fmt.Sprintf(msg, args...),
-		Time:    time.Now().UTC().Format(time.RFC3339Nano),
-	})
-	if err != nil {
-		panic(err)
-	}
-	fmt.Println(string(logJSON))
-}
-
-func (i infoMsg) quiet(msg string, args ...interface{}) {
-	i.pretty(msg, args...)
-}
-
-func (i infoMsg) pretty(msg string, args ...interface{}) {
-	c.Printf(msg, args...)
-}
-
 // Info :
 func Info(msg string, data ...interface{}) {
-	consoleLog(info, msg+"\n", data...)
-}
-
-var startupMessage startUpMsg
-
-type startUpMsg struct {
-}
-
-func (s startUpMsg) json(msg string, args ...interface{}) {
-}
-
-func (s startUpMsg) quiet(msg string, args ...interface{}) {
-}
-
-func (s startUpMsg) pretty(msg string, args ...interface{}) {
-	c.Printf(msg, args...)
+	logrus.Infof(msg, data...)
 }
 
 // StartupMessage :
 func StartupMessage(msg string, data ...interface{}) {
-	consoleLog(startupMessage, msg+"\n", data...)
+	c.Printf( msg+"\n", data...)
 }
