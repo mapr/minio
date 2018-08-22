@@ -19,6 +19,7 @@ package cmd
 import (
 	"context"
 	"os"
+	"syscall"
 
 	"github.com/minio/minio/cmd/logger"
 )
@@ -67,9 +68,18 @@ func handleSignals() {
 
 			exit(err == nil && oerr == nil)
 		case osSignal := <-globalOSSignalCh:
-			stopHTTPTrace()
-			logger.Info("Exiting on signal %v", osSignal)
-			exit(stopProcess())
+			switch osSignal {
+			case syscall.SIGHUP:
+				// Rotate log files
+				err := logger.Reopen()
+				logger.FatalIf(err,"Cannot reopen log file")
+			case syscall.SIGTERM:
+				fallthrough
+			case os.Interrupt:
+				stopHTTPTrace()
+				logger.Info("Exiting on signal %v", osSignal)
+				exit(stopProcess())
+			}
 		case signal := <-globalServiceSignalCh:
 			switch signal {
 			case serviceStatus:

@@ -194,7 +194,7 @@ func StartGateway(ctx *cli.Context, gw Gateway) {
 		globalHTTPServerErrorCh <- globalHTTPServer.Start()
 	}()
 
-	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
 	// Once endpoints are finalized, initialize the new object api.
 	globalObjLayerMutex.Lock()

@@ -285,7 +285,7 @@ func serverMain(ctx *cli.Context) {
 		globalHTTPServerErrorCh <- globalHTTPServer.Start()
 	}()
 
-	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM)
+	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 
 	newObject, err := newObjectLayer(globalEndpoints)
 	if err != nil {
