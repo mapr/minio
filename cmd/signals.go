@@ -21,7 +21,7 @@ import (
 	"errors"
 	"net/http"
 	"os"
-	"strings"
+	"syscall"
 
 	"github.com/minio/minio/cmd/logger"
 )
@@ -73,8 +73,17 @@ func handleSignals() {
 		case <-globalHTTPServerErrorCh:
 			exit(stopProcess())
 		case osSignal := <-globalOSSignalCh:
-			logger.Info("Exiting on signal: %s", strings.ToUpper(osSignal.String()))
-			exit(stopProcess())
+			switch osSignal {
+			case syscall.SIGHUP:
+				// Rotate log files
+				err := logger.Reopen()
+				logger.FatalIf(err, "Cannot reopen log file")
+			case syscall.SIGTERM:
+				fallthrough
+			case os.Interrupt:
+				logger.Info("Exiting on signal %v", osSignal)
+				exit(stopProcess())
+			}
 		case signal := <-globalServiceSignalCh:
 			switch signal {
 			case serviceRestart:

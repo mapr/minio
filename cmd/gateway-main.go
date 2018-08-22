@@ -291,7 +291,7 @@ func StartGateway(ctx *cli.Context, gw Gateway) {
 	globalHTTPServer = httpServer
 	globalObjLayerMutex.Unlock()
 
-	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT, syscall.SIGHUP)
 
 	newObject, err := gw.NewGatewayLayer(globalActiveCred)
 	if err != nil {

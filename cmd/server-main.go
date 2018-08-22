@@ -479,6 +479,7 @@ func serverMain(ctx *cli.Context) {
 		globalHTTPServerErrorCh <- httpServer.Start()
 	}()
 
+	signal.Notify(globalOSSignalCh, os.Interrupt, syscall.SIGTERM, syscall.SIGHUP)
 	setHTTPServer(httpServer)
 
 	if globalIsDistErasure && globalEndpoints.FirstLocal() {
