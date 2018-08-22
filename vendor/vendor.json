@@ -617,6 +617,14 @@
 			"revisionTime": "2016-10-17T23:32:05Z"
 		},
 		{
+			"checksumSHA1": "vRcu8DLpEnhOuaZ/M8iGl2CRG8Y=",
+			"path": "github.com/sirupsen/logrus",
+			"revision": "3e01752db0189b9157070a0e1668a620f9a85da2",
+			"revisionTime": "2018-07-21T07:00:01Z",
+			"version": "v1.0.6",
+			"versionExact": "v1.0.6"
+		},
+		{
 			"checksumSHA1": "u0hXGADM3JDza8YjgiyNJpAJk8g=",
 			"path": "github.com/skyrings/skyring-common/tools/uuid",
 			"revision": "762fd2bfc12e766d90478d638255981ab1966a3d",
