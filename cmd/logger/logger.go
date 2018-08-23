@@ -38,7 +38,7 @@ var matchingFuncNames = [...]string{
 
 // sink: logger output interface
 var (
-	sink loggerSink
+	sink loggerSink = nil
 )
 
 // EnableQuiet - turns quiet option on.
@@ -48,6 +48,34 @@ func EnableQuiet() {
 // EnableJSON - outputs logs in json format.
 func EnableJSON() {
 	logrus.SetFormatter(new(logrus.JSONFormatter))
+}
+
+// Set log file for as output
+// Empty string or '-' symbol will redirect output to stdout
+func SetOutput(filename string) {
+	var newSink loggerSink
+	if filename == "" || filename == "-" {
+		newSink, _ = getStdoutSink()
+
+	} else {
+		var err error
+		newSink, err = getFileSink(filename)
+		if err != nil {
+			logrus.Fatalf("Can not open new log file %s", filename)
+		}
+	}
+
+	logrus.SetOutput(newSink)
+
+	sink.Close()
+	sink = newSink
+}
+
+// Set verbosity level
+// 0 - Panic, 1 - Fatal, 2 - Error, 3 - Warning, 4 - Info, 5 - Debug
+// Or use embedded logrus constants from logrus.PanicLevel to logrus.DebugLevel.
+func SetLevel(level logrus.Level) {
+	logrus.SetLevel(level)
 }
 
 // Init sets the trimStrings to possible GOPATHs
@@ -87,8 +115,10 @@ func Init(goPath string) {
 	// and "{GOPATH}/src/github.com/minio/minio"
 	trimStrings = append(trimStrings, filepath.Join("github.com", "minio", "minio")+string(filepath.Separator))
 
-	sink, _ = getStdoutSink()
-	logrus.SetOutput(sink)
+	if sink == nil {
+		sink, _ = getStdoutSink()
+		logrus.SetOutput(sink)
+	}
 }
 
 func trimTrace(f string) string {

@@ -29,6 +29,7 @@ import (
 	"github.com/minio/dsync"
 	xhttp "github.com/minio/minio/cmd/http"
 	"github.com/minio/minio/cmd/logger"
+	"github.com/sirupsen/logrus"
 )
 
 var serverFlags = []cli.Flag{
@@ -46,6 +47,16 @@ var serverFlags = []cli.Flag{
 		Name: "minio-config, M",
 		Value: "",
 		Usage: "Path to MapRFS-specific config to configure multitenancy and security scenario",
+	},
+	cli.StringFlag{
+		Name: "log-file, L",
+		Value: "",
+		Usage: "Path to log file.",
+	},
+	cli.IntFlag{
+		Name: "log-level, D",
+		Value: 0,
+		Usage: "Log verbosity level (1 - Panic, 2 - Fatal, 3 - Error, 4 - Warning, 5 - Info, 6 - Debug).",
 	},
 	cli.BoolFlag{
 		Name: "check-config",
@@ -161,6 +172,26 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	}
 
 	processMapRFSConfig(ctx)
+
+	// Set up logger properties
+	logFile := ctx.String("log-file")
+	if logFile == "" {
+		logFile = globalMaprMinioCfg.LogPath
+	}
+
+	logger.SetOutput(logFile)
+
+	logLevel := ctx.Int("log-level")
+	if logLevel == 0 {
+		logLevel = globalMaprMinioCfg.LogLevel
+
+		// By default set loglevel to Error
+		if logLevel == 0 {
+			logLevel = 4
+		}
+	}
+
+	logger.SetLevel(logrus.Level(logLevel - 1))
 }
 
 func processMapRFSConfig(ctx *cli.Context) {

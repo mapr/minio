@@ -16,6 +16,8 @@ type MapRMinioConfig struct {
 	FsPath string `json:fsPath` /// Path to the Minio data root directory
 	TenantsFile string `json:tenantsFile` /// Path to the tenants.json file
 	DeploymentMode string  `json:deploymentMode` /// Security scenario to use
+	LogPath string `json:logPath` /// Path to the log file
+	LogLevel int `json:logLevel` /// Logger verbosity
 }
 
 func parseMapRMinioConfig(maprfsConfig string) (config MapRMinioConfig, err error) {
