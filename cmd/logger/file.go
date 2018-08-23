@@ -9,12 +9,39 @@ import (
 
 // sink: logger output interface
 var (
-	sink loggerSink
+	sink loggerSink = nil
 )
 
 // Reopen : This routine will reopen output sink if applicable. For use with external programs for log rotation.
 func Reopen() error {
 	return sink.Reopen()
+}
+
+// Set log file for as output
+// Empty string or '-' symbol will redirect output to stdout
+func SetOutput(filename string) {
+	var newSink loggerSink
+	if filename == "" || filename == "-" {
+		newSink, _ = getStdoutSink()
+	} else {
+		var err error
+		newSink, err = getFileSink(filename)
+		if err != nil {
+			logrus.Fatalf("Can not open new log file %s", filename)
+		}
+	}
+
+	logrus.SetOutput(newSink)
+
+	sink.Close()
+	sink = newSink
+}
+
+// Set verbosity level
+// 0 - Panic, 1 - Fatal, 2 - Error, 3 - Warning, 4 - Info, 5 - Debug
+// Or use embedded logrus constants from logrus.PanicLevel to logrus.DebugLevel.
+func SetLevel(level logrus.Level) {
+	logrus.SetLevel(level)
 }
 
 // enableFileJSON - outputs logs in json format.

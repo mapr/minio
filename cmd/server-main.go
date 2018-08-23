@@ -41,6 +41,7 @@ import (
 	"github.com/minio/minio/pkg/color"
 	"github.com/minio/minio/pkg/env"
 	"github.com/minio/minio/pkg/madmin"
+	"github.com/sirupsen/logrus"
 	"github.com/minio/minio/pkg/sync/errgroup"
 )
 
@@ -50,6 +51,16 @@ var ServerFlags = []cli.Flag{
 		Name:  "address",
 		Value: ":" + GlobalMinioDefaultPort,
 		Usage: "bind to a specific ADDRESS:PORT, ADDRESS can be an IP or hostname",
+	},
+	cli.StringFlag{
+		Name:  "log-file, L",
+		Value: "",
+		Usage: "Path to log file.",
+	},
+	cli.IntFlag{
+		Name:  "log-level, D",
+		Value: 0,
+		Usage: "Log verbosity level (1 - Panic, 2 - Fatal, 3 - Error, 4 - Warning, 5 - Info, 6 - Debug).",
 	},
 }
 
@@ -173,6 +184,22 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	if globalIsDistErasure {
 		globalIsErasure = true
 	}
+
+	// Set up logger properties
+	logFile := ctx.String("log-file")
+
+	logger.SetOutput(logFile)
+
+	logLevel := ctx.Int("log-level")
+	if logLevel == 0 {
+
+		// By default set loglevel to Error
+		if logLevel == 0 {
+			logLevel = 4
+		}
+	}
+
+	logger.SetLevel(logrus.Level(logLevel - 1))
 }
 
 func serverHandleEnvVars() {
