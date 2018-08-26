@@ -1,0 +1,11 @@
+/opt/mapr/s3server/s3server-1.0.0/logs/minio.log
+{
+    rotate 7
+    daily
+    compress
+    missingok
+    sharedscripts
+    postrotate
+        /bin/kill -HUP `cat /opt/mapr/pid/s3server.pid 2> /dev/null` 2> /dev/null || true
+    endscript
+}

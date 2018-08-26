@@ -56,7 +56,7 @@ case $1 in
             exit 1
         fi
         echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port & echo $! > $MINIO_PID_FILE
+	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
