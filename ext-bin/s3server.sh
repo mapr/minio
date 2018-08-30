@@ -44,7 +44,7 @@ case $1 in
         port=$(cat $MAPR_HOME/conf/conf.d/warden.s3server.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
         sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
         else
-        port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,4\}\)\"/\1/')
+        port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
         fi
 
         echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
