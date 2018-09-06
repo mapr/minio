@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 
 INSTALL_DIR=${MAPR_HOME:=/opt/mapr}
-S3SERVER_HOME=$INSTALL_DIR/s3server/s3server-1.0.0
-WARDEN_CONF=$S3SERVER_HOME/conf/warden.s3server.conf
-MINIO_BINARY=$S3SERVER_HOME/bin/minio
-MAPR_S3_CONFIG=$S3SERVER_HOME/conf/minio.json
+OBJECTSERVER_HOME=$INSTALL_DIR/objectserver/objectserver-1.0.0
+WARDEN_CONF=$OBJECTSERVER_HOME/conf/warden.objectserver.conf
+MINIO_BINARY=$OBJECTSERVER_HOME/bin/minio
+MAPR_S3_CONFIG=$OBJECTSERVER_HOME/conf/minio.json
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 sslKeyStore=${INSTALL_DIR}/conf/ssl_keystore
 storePass=mapr123
@@ -93,12 +93,12 @@ function copyWardenFile() {
 }
 
 function tweakPermissions() {
-    chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/conf
-    chown ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME
-    chown -R ${MAPR_USER}:${MAPR_GROUP} $S3SERVER_HOME/bin
+    chown -R ${MAPR_USER}:${MAPR_GROUP} $OBJECTSERVER_HOME/conf
+    chown ${MAPR_USER}:${MAPR_GROUP} $OBJECTSERVER_HOME
+    chown -R ${MAPR_USER}:${MAPR_GROUP} $OBJECTSERVER_HOME/bin
     chmod 6150 $MINIO_BINARY
     setcap "cap_setuid,cap_setgid+eip" $MINIO_BINARY
-    chmod 700 $S3SERVER_HOME/conf/tenants.json
+    chmod 700 $OBJECTSERVER_HOME/conf/tenants.json
 }
 
 function extractPemKey() {
@@ -139,9 +139,9 @@ function setupCertificate() {
             $manageSSLKeys convert -N $clustername $MAPR_HOME/conf/ssl_truststore $MAPR_HOME/conf/ssl_truststore.pem
         fi
     fi
-    mkdir -p $S3SERVER_HOME/conf/certs
-    cp $MAPR_HOME/conf/ssl_truststore.pem $S3SERVER_HOME/conf/certs/public.crt
-    extractPemKey $MAPR_HOME/conf/ssl_keystore $S3SERVER_HOME/conf/certs/private.key
+    mkdir -p $OBJECTSERVER_HOME/conf/certs
+    cp $MAPR_HOME/conf/ssl_truststore.pem $OBJECTSERVER_HOME/conf/certs/public.crt
+    extractPemKey $MAPR_HOME/conf/ssl_keystore $OBJECTSERVER_HOME/conf/certs/private.key
 }
 
 function fixupMfsJson() {
@@ -151,7 +151,7 @@ function fixupMfsJson() {
         sed -i "s#\(\"fsPath\": \"\)\(.*\)\(\",\)#\1$optionalFsPath\3#" $MAPR_S3_CONFIG
     fi
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
-    echo "Configuring S3Server to run on $fsPath"
+    echo "Configuring Objectserver to run on $fsPath"
 }
 
 if [ "x$isSecure" == "xtrue" ]; then

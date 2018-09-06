@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 MAPR_HOME=/opt/mapr
-MINIO_DIR=$MAPR_HOME/s3server/s3server-1.0.0
-MINIO_PID_FILE=$MAPR_HOME/pid/s3server.pid
+MINIO_DIR=$MAPR_HOME/objectserver/objectserver-1.0.0
+MINIO_PID_FILE=$MAPR_HOME/pid/objectserver.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
 DEPLOYMENT_TYPE_FILE=.deployment_type
@@ -28,7 +28,7 @@ function checkSecurityScenario() {
 
 if [ ! -d $MINIO_DIR ]
 then
-   echo "Failed to start s3server"
+   echo "Failed to start objectserver"
    exit 1
 fi
 
@@ -40,8 +40,8 @@ case $1 in
         fi
 
         #Setting port
-        if [ -f "$MAPR_HOME/conf/conf.d/warden.s3server.conf" ]; then
-        port=$(cat $MAPR_HOME/conf/conf.d/warden.s3server.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
+        if [ -f "$MAPR_HOME/conf/conf.d/warden.objectserver.conf" ]; then
+        port=$(cat $MAPR_HOME/conf/conf.d/warden.objectserver.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
         sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
         else
         port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
