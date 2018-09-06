@@ -1,8 +1,8 @@
 {
     "fsPath": "/mapr/${cluster}/apps/s3/${node}",
     "deploymentMode": "mixed",
-    "tenantsFile": "/opt/mapr/objectserver/objectserver-1.0.0/conf/tenants.json",
+    "tenantsFile": "/opt/mapr/objectstore/objectstore-1.0.0/conf/tenants.json",
     "port": "9000",
-    "logPath": "/opt/mapr/objectserver/objectserver-1.0.0/logs/minio.log",
+    "logPath": "/opt/mapr/objectstore/objectstore-1.0.0/logs/minio.log",
     "logLevel": 4
 }
