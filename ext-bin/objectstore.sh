@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 MAPR_HOME=/opt/mapr
-MINIO_DIR=$MAPR_HOME/objectstore/objectstore-1.0.0
+MINIO_DIR=$MAPR_HOME/objectstore-client/objectstore-client-1.0.0
 MINIO_PID_FILE=$MAPR_HOME/pid/objectstore.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log

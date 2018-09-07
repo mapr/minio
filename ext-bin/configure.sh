@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 INSTALL_DIR=${MAPR_HOME:=/opt/mapr}
-OBJECTSTORE_HOME=$INSTALL_DIR/objectstore/objectstore-1.0.0
+OBJECTSTORE_HOME=$INSTALL_DIR/objectstore-client/objectstore-client-1.0.0
 WARDEN_CONF=$OBJECTSTORE_HOME/conf/warden.objectstore.conf
 MINIO_BINARY=$OBJECTSTORE_HOME/bin/minio
 MAPR_S3_CONFIG=$OBJECTSTORE_HOME/conf/minio.json

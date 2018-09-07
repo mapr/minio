@@ -1,4 +1,4 @@
-/opt/mapr/objectstore/objectstore-1.0.0/logs/minio.log
+/opt/mapr/objectstore-client/objectstore-client-1.0.0/logs/minio.log
 {
     rotate 7
     daily
