@@ -19,6 +19,8 @@ package cmd
 import (
 	"bytes"
 	"context"
+	"crypto/md5"
+	"encoding/hex"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -26,6 +28,7 @@ import (
 	"os"
 	"os/user"
 	"path"
+	"path/filepath"
 	"sort"
 	"strings"
 	"sync"
@@ -628,6 +631,14 @@ func (fs *FSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, dstBu
 	if cpSrcDstSame && srcInfo.metadataOnly {
 		fsMetaPath := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix, srcBucket, srcObject, fs.metaJSONFile)
 		wlk, err := fs.rwPool.Write(fsMetaPath)
+		if err == errFileNotFound {
+			err = fs.fsAddMetaData(ctx, srcBucket, srcObject)
+			if err != nil {
+				logger.LogIf(ctx, err)
+				return oi, err
+			}
+			wlk, err = fs.rwPool.Write(fsMetaPath)
+		}
 		if err != nil {
 			wlk, err = fs.rwPool.Create(fsMetaPath)
 			if err != nil {
@@ -805,6 +816,14 @@ func (fs *FSObjects) getObject(ctx context.Context, bucket, object string, offse
 		fsMetaPath := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix, bucket, object, fs.metaJSONFile)
 		if lock {
 			_, err = fs.rwPool.Open(fsMetaPath)
+			if err == errFileNotFound {
+				err = fs.fsAddMetaData(ctx, bucket, object)
+				if err != nil {
+					logger.LogIf(ctx, err)
+					return err
+				}
+				_, err = fs.rwPool.Open(fsMetaPath)
+			}
 			if err != nil && err != errFileNotFound {
 				logger.LogIf(ctx, err)
 				return toObjectErr(err, bucket, object)
@@ -948,6 +967,14 @@ func (fs *FSObjects) getObjectInfo(ctx context.Context, bucket, object string) (
 	// parallel Put() operations.
 
 	rlk, err := fs.rwPool.Open(fsMetaPath)
+	if err == errFileNotFound {
+		err = fs.fsAddMetaData(ctx, bucket, object)
+		if err != nil {
+			logger.LogIf(ctx, err)
+			return oi, err
+		}
+		rlk, err = fs.rwPool.Open(fsMetaPath)
+	}
 	if err == nil {
 		// Read from fs metadata only if it exists.
 		_, rerr := fsMeta.ReadFrom(ctx, rlk.LockedFile)
@@ -1352,6 +1379,18 @@ func (fs *FSObjects) isObjectDir(bucket, prefix string) bool {
 func (fs *FSObjects) getObjectETag(ctx context.Context, bucket, entry string, lock bool) (string, error) {
 	fsMetaPath := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix, bucket, entry, fs.metaJSONFile)
 
+	// Check metadata exists
+	file, _, err := fsOpenFile(ctx, fsMetaPath, 0)
+	if err == errFileNotFound {
+		// Create new metadata
+		err = fs.fsAddMetaData(ctx, bucket, entry)
+		if err != nil {
+			logger.LogIf(ctx, err)
+			return "", err
+		}
+	}
+	file.Close()
+
 	var reader io.Reader
 	var fi os.FileInfo
 	var size int64
@@ -1606,4 +1645,53 @@ func (fs *FSObjects) Health(ctx context.Context, opts HealthOptions) HealthResul
 func (fs *FSObjects) ReadHealth(ctx context.Context) bool {
 	_, err := os.Stat(fs.fsPath)
 	return err == nil
+}
+
+func (fs *FSObjects) fsAddMetaData(ctx context.Context, bucket string, object string) error {
+	// Get file paths
+	bucketMetaDir := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix)
+	fsMetaPath := pathJoin(bucketMetaDir, bucket, object, fs.metaJSONFile)
+	var wlk *lock.LockedFile
+	fsMeta := newFSMetaV1()
+	meta := make(map[string]string)
+	fsMeta.Meta = meta
+
+	// Create filesystems lock
+	wlk, err := fs.rwPool.Create(fsMetaPath)
+	if err != nil {
+		logger.LogIf(ctx, err)
+		return toObjectErr(err, bucket, object)
+	}
+	defer wlk.Close()
+
+	// Calculate E-tag
+	filePath := pathJoin(fs.fsPath, bucket, object)
+	reader, _, err := fsOpenFile(ctx, filePath, 0)
+	if err != nil {
+		logger.LogIf(ctx, err)
+		return toObjectErr(err, bucket, object)
+	}
+	defer reader.Close()
+
+	hash := md5.New()
+	if _, err := io.Copy(hash, reader); err != nil {
+		return toObjectErr(err, bucket, object)
+	}
+	//Convert the bytes to a string
+	hashInBytes := hash.Sum(nil)[:16]
+	fsMeta.Meta["etag"] = hex.EncodeToString(hashInBytes)
+
+	// Get file content type from extension
+	if objectExt := filepath.Ext(object); objectExt != "" {
+		if content, ok := mimedb.DB[strings.ToLower(strings.TrimPrefix(objectExt, "."))]; ok {
+			fsMeta.Meta["content-type"] = content.ContentType
+		}
+	}
+
+	// Save file
+	if _, err := fsMeta.WriteTo(wlk); err != nil {
+		logger.LogIf(ctx, err)
+		return toObjectErr(err, bucket, object)
+	}
+	return nil
 }
