@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 MAPR_HOME=/opt/mapr
-MINIO_DIR=$MAPR_HOME/objectstore-client/objectstore-client-1.0.2
+MINIO_DIR=$MAPR_HOME/objectstore-client/objectstore-client-2.0.0
 MINIO_PID_FILE=$MAPR_HOME/pid/objectstore.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
@@ -47,16 +47,19 @@ case $1 in
         port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
         fi
 
+        mountPath=$(cat $MAPR_S3_CONFIG | grep 'fsPath' | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
+
         echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
-        $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port  --check-config
+        $MINIO_DIR/bin/minio server $mountPath --address :$port
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
         echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
-	    nohup $MINIO_DIR/bin/minio server dummy-arg --config-dir $MINIO_DIR/conf -M $MAPR_S3_CONFIG --address :$port > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
+            nohup $MINIO_DIR/bin/minio server $mountPath --address :$port > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
+
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 
 INSTALL_DIR=${MAPR_HOME:=/opt/mapr}
-OBJECTSTORE_HOME=$INSTALL_DIR/objectstore-client/objectstore-client-1.0.2
+OBJECTSTORE_HOME=$INSTALL_DIR/objectstore-client/objectstore-client-2.0.0
 OBJECTSTORE_CONFIGS=$INSTALL_DIR/objectstore-client
 WARDEN_CONF=$OBJECTSTORE_HOME/conf/warden.objectstore.conf
 MINIO_BINARY=$OBJECTSTORE_HOME/bin/minio
@@ -157,14 +157,14 @@ function fixupMfsJson() {
 
 function migrateConfig() {
     if [ ! -f $OBJECTSTORE_HOME/conf/.config_migrated ]; then
-        OLD_INSTALL=$(ls -dw1 "$OBJECTSTORE_CONFIGS/objectstore-client-1.0.1."* 2>/dev/null | tail -1)
+        OLD_INSTALL=$(ls -dw1 "$OBJECTSTORE_CONFIGS/objectstore-client-1.0.2."* 2>/dev/null | tail -1)
         if [ x$OLD_INSTALL != x ]; then
             echo "Found previous configuration \"$OLD_INSTALL\". Start migration."
             for file in config.json minio.json tenants.json
             do
                 cp -r "$OLD_INSTALL/conf/$file" "$OBJECTSTORE_HOME/conf"
             done
-            sed -i 's/objectstore-client-1.0.1/objectstore-client-1.0.2/g' "$OBJECTSTORE_HOME/conf/minio.json"
+            sed -i 's/objectstore-client-1.0.2/objectstore-client-2.0.0/g' "$OBJECTSTORE_HOME/conf/minio.json"
             touch $OBJECTSTORE_HOME/conf/.config_migrated
         fi
     fi
