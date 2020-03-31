@@ -116,6 +116,7 @@ func EnableQuiet() {
 func EnableJSON() {
 	jsonFlag = true
 	quietFlag = true
+	enableFileJSON()
 }
 
 // EnableAnonymous - turns anonymous flag
@@ -208,6 +209,8 @@ func Init(goPath string, goRoot string) {
 	trimStrings = append(trimStrings, filepath.Join("github.com", "minio", "minio")+string(filepath.Separator))
 
 	loggerHighwayHasher, _ = highwayhash.New(magicHighwayHash256Key) // New will never return error since key is 256 bit
+
+	initFile()
 }
 
 func trimTrace(f string) string {
@@ -298,7 +301,9 @@ func LogIf(ctx context.Context, err error, errKind ...interface{}) {
 		return
 	}
 
-	if errors.Is(err, context.Canceled) {
+	if fileLogEnabled {
+		logIfFile(ctx, err)
+	} else if errors.Is(err, context.Canceled) {
 		return
 	}
 
@@ -400,5 +405,29 @@ func FatalIf(err error, msg string, data ...interface{}) {
 	if err == nil {
 		return
 	}
-	fatal(err, msg, data...)
+
+	if fileLogEnabled {
+		fatalIfFile(err, msg, data...)
+	} else {
+		fatal(err, msg, data...)
+	}
+}
+
+// Fatal prints only fatal error message with no stack trace
+// it will be called for input validation failures
+func Fatal(err error, msg string, data ...interface{}) {
+	if fileLogEnabled {
+		fatalIfFile(err, msg, data...)
+	} else {
+		fatal(err, msg, data...)
+	}
+}
+
+// Info :
+func Info(msg string, data ...interface{}) {
+	if fileLogEnabled {
+		infoFile(msg, data...)
+	} else {
+		consoleLog(info, msg+"\n", data...)
+	}
 }

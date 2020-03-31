@@ -48,12 +48,6 @@ func consoleLog(console Logger, msg string, args ...interface{}) {
 	}
 }
 
-// Fatal prints only fatal error message with no stack trace
-// it will be called for input validation failures
-func Fatal(err error, msg string, data ...interface{}) {
-	fatal(err, msg, data...)
-}
-
 func fatal(err error, msg string, data ...interface{}) {
 	var errMsg string
 	if msg != "" {
@@ -159,11 +153,6 @@ func (i infoMsg) quiet(msg string, args ...interface{}) {
 
 func (i infoMsg) pretty(msg string, args ...interface{}) {
 	c.Printf(msg, args...)
-}
-
-// Info :
-func Info(msg string, data ...interface{}) {
-	consoleLog(info, msg+"\n", data...)
 }
 
 var startupMessage startUpMsg

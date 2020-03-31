@@ -12,6 +12,10 @@ var (
 	sink loggerSink = nil
 )
 
+var (
+	fileLogEnabled = false
+)
+
 // Reopen : This routine will reopen output sink if applicable. For use with external programs for log rotation.
 func Reopen() error {
 	return sink.Reopen()
@@ -29,6 +33,7 @@ func SetOutput(filename string) {
 		if err != nil {
 			logrus.Fatalf("Can not open new log file %s", filename)
 		}
+		fileLogEnabled = true
 	}
 
 	logrus.SetOutput(newSink)
