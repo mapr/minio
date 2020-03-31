@@ -71,6 +71,7 @@ require (
 	github.com/rs/cors v1.7.0
 	github.com/secure-io/sio-go v0.3.1
 	github.com/shirou/gopsutil/v3 v3.21.1
+	github.com/sirupsen/logrus v1.8.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	github.com/streadway/amqp v1.0.0
 	github.com/tidwall/gjson v1.6.7
