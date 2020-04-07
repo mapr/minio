@@ -816,7 +816,7 @@ func (fs *FSObjects) getObject(ctx context.Context, bucket, object string, offse
 		fsMetaPath := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix, bucket, object, fs.metaJSONFile)
 		if lock {
 			_, err = fs.rwPool.Open(fsMetaPath)
-			if err == errFileNotFound {
+			if err == errFileNotFound && bucket != dataUsageBucket {
 				err = fs.fsAddMetaData(ctx, bucket, object)
 				if err != nil {
 					logger.LogIf(ctx, err)
@@ -967,13 +967,13 @@ func (fs *FSObjects) getObjectInfo(ctx context.Context, bucket, object string) (
 	// parallel Put() operations.
 
 	rlk, err := fs.rwPool.Open(fsMetaPath)
-	if err == errFileNotFound {
+	if err == errFileNotFound && bucket != minioMetaBucket && bucket != dataUsageBucket {
 		err = fs.fsAddMetaData(ctx, bucket, object)
-		if err != nil {
-			logger.LogIf(ctx, err)
-			return oi, err
+		if err == nil {
+			rlk, err = fs.rwPool.Open(fsMetaPath)
+		} else {
+			err = errFileNotFound
 		}
-		rlk, err = fs.rwPool.Open(fsMetaPath)
 	}
 	if err == nil {
 		// Read from fs metadata only if it exists.
@@ -1668,7 +1668,6 @@ func (fs *FSObjects) fsAddMetaData(ctx context.Context, bucket string, object st
 	filePath := pathJoin(fs.fsPath, bucket, object)
 	reader, _, err := fsOpenFile(ctx, filePath, 0)
 	if err != nil {
-		logger.LogIf(ctx, err)
 		return toObjectErr(err, bucket, object)
 	}
 	defer reader.Close()
