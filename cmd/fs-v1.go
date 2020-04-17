@@ -400,6 +400,12 @@ func (fs *FSObjects) statBucketDir(ctx context.Context, bucket string) (os.FileI
 
 // MakeBucketWithLocation - create a new bucket, returns if it already exists.
 func (fs *FSObjects) MakeBucketWithLocation(ctx context.Context, bucket string, opts BucketOptions) error {
+	return fs.MakeBucketWithUidGidLocation(ctx, bucket, "", "", opts)
+}
+
+// MakeBucketWithUidGidLocation - create a new bucket, returns if it
+// already exists.
+func (fs *FSObjects) MakeBucketWithUidGidLocation(ctx context.Context, bucket, uid, gid string, opts BucketOptions) error {
 	if opts.LockEnabled || opts.VersioningEnabled {
 		return NotImplemented{}
 	}
@@ -421,6 +427,10 @@ func (fs *FSObjects) MakeBucketWithLocation(ctx context.Context, bucket string, 
 	}
 
 	if err = fsMkdir(ctx, bucketDir); err != nil {
+		return toObjectErr(err, bucket)
+	}
+
+	if err = fsChown(ctx, bucketDir, uid, gid); err != nil {
 		return toObjectErr(err, bucket)
 	}
 
@@ -1217,7 +1227,10 @@ func (fs *FSObjects) putObject(ctx context.Context, bucket string, object string
 
 	// Entire object was written to the temp location, now it's safe to rename it to the actual location.
 	fsNSObjPath := pathJoin(fs.fsPath, bucket, object)
-	if err = fsRenameFile(ctx, fsTmpObjPath, fsNSObjPath); err != nil {
+	uid := opts.UserDefined["uid"]
+	gid := opts.UserDefined["gid"]
+
+	if err = fsRenameFileWithUidGid(ctx, fsTmpObjPath, fsNSObjPath, uid, gid); err != nil {
 		return ObjectInfo{}, toObjectErr(err, bucket, object)
 	}
 

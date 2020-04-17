@@ -156,6 +156,11 @@ func extractMetadata(ctx context.Context, r *http.Request) (metadata map[string]
 		}
 	}
 
+	// Setting UID and GID
+	cred := getReqAccessCred(r, "")
+	metadata["uid"] = cred.UID
+	metadata["gid"] = cred.GID
+
 	// Success.
 	return metadata, nil
 }

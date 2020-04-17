@@ -20,6 +20,9 @@ import (
 	"fmt"
 	"os"
 	"path"
+	"strconv"
+	"strings"
+	"syscall"
 )
 
 // Wrapper functions to os.RemoveAll, which calls reliableRemoveAll
@@ -113,11 +116,82 @@ func reliableMkdirAll(dirPath string, mode os.FileMode) (err error) {
 	return err
 }
 
+// Reliably retries os.MkdirAll if for some reason os.MkdirAll returns
+// syscall.ENOENT (parent does not exist).
+func reliableMkdirAllWithUidGid(dirPath, uid, gid string, mode os.FileMode) (err error) {
+	if _, err = os.Stat(dirPath); !os.IsNotExist(err) {
+		return nil
+	}
+
+	if uid == "" || gid == "" {
+		return reliableMkdirAll(dirPath, mode)
+	}
+
+	parts := strings.Split(dirPath, "/")
+	var newPath = ""
+	for _, part := range parts {
+		newPath += part + "/"
+		if _, err = os.Stat(newPath); os.IsNotExist(err) {
+			for i := 0; i < 2; i++ {
+				// Creates all the parent directories, with mode mkdir honors system umask.
+				if err = os.Mkdir(newPath, mode); err != nil {
+					// Retry only for the first retryable error.
+					if os.IsNotExist(err) {
+						continue
+					}
+				} else if err = chown(newPath, uid, gid); err != nil {
+					continue
+				}
+				break
+			}
+		} else {
+			continue
+		}
+
+		if err != nil {
+			break
+		}
+	}
+
+	return err
+}
+
+// Chown specified directory
+func chown(path, uid, gid string) error {
+	if uid == "" || gid == "" {
+		return nil
+	}
+
+	numberUid, err := strconv.Atoi(uid)
+	if err != nil {
+		return err
+	}
+
+	numberGid, err := strconv.Atoi(gid)
+	if err != nil {
+		return err
+	}
+
+	if err := syscall.Chown(path, numberUid, numberGid); err != nil {
+		return err
+	}
+
+	return nil
+}
+
 // Wrapper function to os.Rename, which calls reliableMkdirAll
 // and reliableRenameAll. This is to ensure that if there is a
 // racy parent directory delete in between we can simply retry
 // the operation.
 func renameAll(srcFilePath, dstFilePath string) (err error) {
+	return renameAllWithUidGid(srcFilePath, dstFilePath, "", "")
+}
+
+// Wrapper function to os.Rename, which calls reliableMkdirAll
+// and reliableRenameAll. This is to ensure that if there is a
+// racy parent directory delete in between we can simply retry
+// the operation with specified UID and GID.
+func renameAllWithUidGid(srcFilePath, dstFilePath, uid, gid string) (err error) {
 	if srcFilePath == "" || dstFilePath == "" {
 		return errInvalidArgument
 	}
@@ -129,7 +203,7 @@ func renameAll(srcFilePath, dstFilePath string) (err error) {
 		return err
 	}
 
-	if err = reliableRename(srcFilePath, dstFilePath); err != nil {
+	if err = reliableRenameWithUidGid(srcFilePath, dstFilePath, uid, gid); err != nil {
 		switch {
 		case isSysErrNotDir(err) && !osIsNotExist(err):
 			// Windows can have both isSysErrNotDir(err) and osIsNotExist(err) returning
@@ -160,18 +234,25 @@ func renameAll(srcFilePath, dstFilePath string) (err error) {
 // Reliably retries os.RenameAll if for some reason os.RenameAll returns
 // syscall.ENOENT (parent does not exist).
 func reliableRename(srcFilePath, dstFilePath string) (err error) {
-	if err = reliableMkdirAll(path.Dir(dstFilePath), 0777); err != nil {
+	return reliableRenameWithUidGid(srcFilePath, dstFilePath, "", "")
+}
+
+// Reliably retries os.RenameAll if for some reason os.RenameAll returns
+// syscall.ENOENT (parent does not exist) with specified UID and GID.
+func reliableRenameWithUidGid(srcFilePath, dstFilePath, uid, gid string) (err error) {
+	if err = reliableMkdirAllWithUidGid(path.Dir(dstFilePath), uid, gid, 0755); err != nil {
 		return err
 	}
-	i := 0
-	for {
+
+	for i := 0; i < 2; i++ {
 		// After a successful parent directory create attempt a renameAll.
 		if err = os.Rename(srcFilePath, dstFilePath); err != nil {
 			// Retry only for the first retryable error.
-			if osIsNotExist(err) && i == 0 {
-				i++
+			if osIsNotExist(err) {
 				continue
 			}
+		} else if err = chown(dstFilePath, uid, gid); err != nil {
+			continue
 		}
 		break
 	}

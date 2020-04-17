@@ -198,11 +198,13 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 		LockEnabled: false,
 	}
 
+	cred := getReqAccessCred(r, "")
+
 	if globalDNSConfig != nil {
 		if _, err := globalDNSConfig.Get(args.BucketName); err != nil {
 			if err == dns.ErrNoEntriesFound || err == dns.ErrNotImplemented {
 				// Proceed to creating a bucket.
-				if err = objectAPI.MakeBucketWithLocation(ctx, args.BucketName, opts); err != nil {
+				if err = makeBucketWithLocation(objectAPI, ctx, cred, args.BucketName, opts); err != nil {
 					return toJSONError(ctx, err)
 				}
 
@@ -219,7 +221,7 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 		return toJSONError(ctx, errBucketAlreadyExists)
 	}
 
-	if err := objectAPI.MakeBucketWithLocation(ctx, args.BucketName, opts); err != nil {
+	if err := makeBucketWithLocation(objectAPI, ctx, cred, args.BucketName, opts); err != nil {
 		return toJSONError(ctx, err, args.BucketName)
 	}
 
@@ -237,6 +239,15 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 	})
 
 	return nil
+}
+
+func makeBucketWithLocation(layer ObjectLayer, ctx context.Context, cred auth.Credentials, bucket string, opts BucketOptions) error {
+	switch layer.(type) {
+	case *FSObjects:
+		return layer.(*FSObjects).MakeBucketWithUidGidLocation(ctx, bucket, cred.UID, cred.GID, opts)
+	default:
+		return layer.MakeBucketWithLocation(ctx, bucket, opts)
+	}
 }
 
 // RemoveBucketArgs - remove bucket args.

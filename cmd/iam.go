@@ -925,6 +925,8 @@ func (sys *IAMSys) ListUsers() (map[string]madmin.UserInfo, error) {
 	for k, v := range sys.iamUsersMap {
 		if !v.IsTemp() && !v.IsServiceAccount() {
 			users[k] = madmin.UserInfo{
+				UID:        v.UID,
+				GID:        v.GID,
 				PolicyName: sys.iamUserPolicyMap[k].Policies,
 				Status: func() madmin.AccountStatus {
 					if v.IsValid() {
@@ -1022,6 +1024,8 @@ func (sys *IAMSys) GetUserInfo(name string) (u madmin.UserInfo, err error) {
 	}
 
 	return madmin.UserInfo{
+		UID:        cred.UID,
+		GID:        cred.GID,
 		PolicyName: sys.iamUserPolicyMap[name].Policies,
 		Status: func() madmin.AccountStatus {
 			if cred.IsValid() {
@@ -1250,6 +1254,8 @@ func (sys *IAMSys) CreateUser(accessKey string, uinfo madmin.UserInfo) error {
 	u := newUserIdentity(auth.Credentials{
 		AccessKey: accessKey,
 		SecretKey: uinfo.SecretKey,
+		UID:       uinfo.UID,
+		GID:       uinfo.GID,
 		Status:    string(uinfo.Status),
 	})
 

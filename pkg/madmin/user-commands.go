@@ -94,6 +94,8 @@ const (
 type UserInfo struct {
 	SecretKey  string        `json:"secretKey,omitempty"`
 	PolicyName string        `json:"policyName,omitempty"`
+	UID        string        `json:"uid,omitempty"`
+	GID        string        `json:"gid,omitempty"`
 	Status     AccountStatus `json:"status"`
 	MemberOf   []string      `json:"memberOf,omitempty"`
 }
@@ -189,7 +191,7 @@ func (adm *AdminClient) GetUserInfo(ctx context.Context, name string) (u UserInf
 }
 
 // SetUser - sets a user info.
-func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string, status AccountStatus) error {
+func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey, uid, gid string, status AccountStatus) error {
 
 	if !auth.IsAccessKeyValid(accessKey) {
 		return auth.ErrInvalidAccessKeyLength
@@ -200,6 +202,8 @@ func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string
 	}
 
 	data, err := json.Marshal(UserInfo{
+		UID:       uid,
+		GID:       gid,
 		SecretKey: secretKey,
 		Status:    status,
 	})
@@ -236,8 +240,8 @@ func (adm *AdminClient) SetUser(ctx context.Context, accessKey, secretKey string
 }
 
 // AddUser - adds a user.
-func (adm *AdminClient) AddUser(ctx context.Context, accessKey, secretKey string) error {
-	return adm.SetUser(ctx, accessKey, secretKey, AccountEnabled)
+func (adm *AdminClient) AddUser(ctx context.Context, accessKey, secretKey, uid, gid string) error {
+	return adm.SetUser(ctx, accessKey, secretKey, uid, gid, AccountEnabled)
 }
 
 // SetUserStatus - adds a status for a user.

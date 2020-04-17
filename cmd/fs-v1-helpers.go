@@ -376,6 +376,12 @@ func fsSimpleRenameFile(ctx context.Context, sourcePath, destPath string) error 
 // Renames source path to destination path, creates all the
 // missing parents if they don't exist.
 func fsRenameFile(ctx context.Context, sourcePath, destPath string) error {
+	return fsRenameFileWithUidGid(ctx, sourcePath, destPath, "", "")
+}
+
+// Renames source path to destination path, creates all the
+// missing parents if they don't exist with specified UID and GID.
+func fsRenameFileWithUidGid(ctx context.Context, sourcePath, destPath, uid, gid string) error {
 	if err := checkPathLength(sourcePath); err != nil {
 		logger.LogIf(ctx, err)
 		return err
@@ -385,7 +391,19 @@ func fsRenameFile(ctx context.Context, sourcePath, destPath string) error {
 		return err
 	}
 
-	if err := renameAll(sourcePath, destPath); err != nil {
+	if err := renameAllWithUidGid(sourcePath, destPath, uid, gid); err != nil {
+		logger.LogIf(ctx, err)
+		return err
+	}
+
+	return nil
+}
+
+// Chowns file on path
+func fsChown(ctx context.Context, path, uid, gid string) error {
+	err := chown(path, uid, gid)
+
+	if err != nil {
 		logger.LogIf(ctx, err)
 		return err
 	}

@@ -87,6 +87,8 @@ var (
 type Credentials struct {
 	AccessKey    string    `xml:"AccessKeyId" json:"accessKey,omitempty"`
 	SecretKey    string    `xml:"SecretAccessKey" json:"secretKey,omitempty"`
+	UID          string    `xml:"UID" json:"uid,omitempty"`
+	GID          string    `xml:"GID" json:"gid,omitempty"`
 	Expiration   time.Time `xml:"Expiration" json:"expiration,omitempty"`
 	SessionToken string    `xml:"SessionToken" json:"sessionToken,omitempty"`
 	Status       string    `xml:"-" json:"status,omitempty"`
