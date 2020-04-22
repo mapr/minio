@@ -51,7 +51,7 @@ case $1 in
 
         echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
-        $MINIO_DIR/bin/minio server $mountPath  -L $MINIO_LOG_FILE --address :$port
+        $MINIO_DIR/bin/minio server $mountPath  -L $MINIO_LOG_FILE --address :$port  --check-config
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
