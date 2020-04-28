@@ -67,6 +67,10 @@ var ServerFlags = []cli.Flag{
 		Value: "",
 		Usage: "Path to MapRFS-specific config to configure modes and logs",
 	},
+	cli.StringFlag{
+		Name:  "mode",
+		Usage: "MapRMode of work (S3/FS)",
+	},
 	cli.BoolFlag{
 		Name:  "check-config",
 		Usage: "Check configuration files, do pre-flight check and exit with status code",
@@ -196,26 +200,36 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 
 	var logLevel int
 	var logFile string
+	var modeString string
 	if processMapRFSConfig(ctx) == nil && !ctx.Bool("check-config") {
 		logFile = globalMaprMinioCfg.LogPath
 		logLevel = globalMaprMinioCfg.LogLevel
+		modeString = globalMaprMinioCfg.DeploymentMode
 	} else {
-
 		// Set up logger properties
 		logFile = ctx.String("log-file")
-
 		logLevel = ctx.Int("log-level")
-		if logLevel == 0 {
-
-			// By default set loglevel to Error
-			if logLevel == 0 {
-				logLevel = 4
-			}
-		}
+		modeString = ctx.String("mode")
 	}
 
 	logger.SetOutput(logFile)
+
+	if logLevel == 0 {
+
+		// By default set loglevel to Error
+		if logLevel == 0 {
+			logLevel = 4
+		}
+	}
+
 	logger.SetLevel(logrus.Level(logLevel - 1))
+
+	mode := StringToMode(modeString)
+	if mode == UNKNOWN {
+		globalMode = FS
+	} else {
+		globalMode = mode
+	}
 }
 
 func processMapRFSConfig(ctx *cli.Context) error {
@@ -623,7 +637,14 @@ func newObjectLayer(ctx context.Context, endpointServerPools EndpointServerPools
 	// For FS only, directly use the disk.
 	if endpointServerPools.NEndpoints() == 1 {
 		// Initialize new FS object layer.
-		return NewFSObjectLayer(endpointServerPools[0].Endpoints[0].Path)
+		switch globalMode {
+		case FS:
+			return NewMapRFSObjectLayer(endpointServerPools[0].Endpoints[0].Path)
+		case S3:
+			return NewFSObjectLayer(endpointServerPools[0].Endpoints[0].Path)
+		default:
+			return nil, nil
+		}
 	}
 
 	return newErasureServerPools(ctx, endpointServerPools)

@@ -1,6 +1,6 @@
 {
     "fsPath": "/mapr/${cluster}/apps/s3/${node}",
-    "deploymentMode": "S3",
+    "deploymentMode": "FS",
     "accessKey": "minioadmin",
     "secretKey": "minioadmin",
     "oldAccessKey": "",

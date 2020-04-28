@@ -177,7 +177,7 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 	}
 
 	// For authenticated users apply IAM policy.
-	if !globalIAMSys.IsAllowed(iampolicy.Args{
+	if globalMode != FS && !globalIAMSys.IsAllowed(iampolicy.Args{
 		AccountName:     claims.AccessKey,
 		Action:          iampolicy.CreateBucketAction,
 		BucketName:      args.BucketName,
@@ -198,13 +198,11 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 		LockEnabled: false,
 	}
 
-	cred := getReqAccessCred(r, "")
-
 	if globalDNSConfig != nil {
 		if _, err := globalDNSConfig.Get(args.BucketName); err != nil {
 			if err == dns.ErrNoEntriesFound || err == dns.ErrNotImplemented {
 				// Proceed to creating a bucket.
-				if err = makeBucketWithLocation(objectAPI, ctx, cred, args.BucketName, opts); err != nil {
+				if err = objectAPI.MakeBucketWithLocation(ctx, args.BucketName, opts); err != nil {
 					return toJSONError(ctx, err)
 				}
 
@@ -221,7 +219,7 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 		return toJSONError(ctx, errBucketAlreadyExists)
 	}
 
-	if err := makeBucketWithLocation(objectAPI, ctx, cred, args.BucketName, opts); err != nil {
+	if err := objectAPI.MakeBucketWithLocation(ctx, args.BucketName, opts); err != nil {
 		return toJSONError(ctx, err, args.BucketName)
 	}
 
@@ -239,15 +237,6 @@ func (web *webAPIHandlers) MakeBucket(r *http.Request, args *MakeBucketArgs, rep
 	})
 
 	return nil
-}
-
-func makeBucketWithLocation(layer ObjectLayer, ctx context.Context, cred auth.Credentials, bucket string, opts BucketOptions) error {
-	switch layer.(type) {
-	case *FSObjects:
-		return layer.(*FSObjects).MakeBucketWithUidGidLocation(ctx, bucket, cred.UID, cred.GID, opts)
-	default:
-		return layer.MakeBucketWithLocation(ctx, bucket, opts)
-	}
 }
 
 // RemoveBucketArgs - remove bucket args.
@@ -268,7 +257,7 @@ func (web *webAPIHandlers) DeleteBucket(r *http.Request, args *RemoveBucketArgs,
 	}
 
 	// For authenticated users apply IAM policy.
-	if !globalIAMSys.IsAllowed(iampolicy.Args{
+	if globalMode != FS && !globalIAMSys.IsAllowed(iampolicy.Args{
 		AccountName:     claims.AccessKey,
 		Action:          iampolicy.DeleteBucketAction,
 		BucketName:      args.BucketName,
@@ -399,7 +388,7 @@ func (web *webAPIHandlers) ListBuckets(r *http.Request, args *WebGenericArgs, re
 			return toJSONError(ctx, err)
 		}
 		for _, bucket := range buckets {
-			if globalIAMSys.IsAllowed(iampolicy.Args{
+			if globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 				AccountName:     claims.AccessKey,
 				Action:          iampolicy.ListBucketAction,
 				BucketName:      bucket.Name,
@@ -514,7 +503,7 @@ func (web *webAPIHandlers) ListObjects(r *http.Request, args *ListObjectsArgs, r
 			r.Header.Set("delimiter", SlashSeparator)
 
 			// Check if anonymous (non-owner) has access to download objects.
-			readable := globalPolicySys.IsAllowed(policy.Args{
+			readable := globalMode == FS && globalPolicySys.IsAllowed(policy.Args{
 				Action:          policy.ListBucketAction,
 				BucketName:      args.BucketName,
 				ConditionValues: getConditionValues(r, "", "", nil),
@@ -522,7 +511,7 @@ func (web *webAPIHandlers) ListObjects(r *http.Request, args *ListObjectsArgs, r
 			})
 
 			// Check if anonymous (non-owner) has access to upload objects.
-			writable := globalPolicySys.IsAllowed(policy.Args{
+			writable := globalMode == FS && globalPolicySys.IsAllowed(policy.Args{
 				Action:          policy.PutObjectAction,
 				BucketName:      args.BucketName,
 				ConditionValues: getConditionValues(r, "", "", nil),
@@ -552,7 +541,7 @@ func (web *webAPIHandlers) ListObjects(r *http.Request, args *ListObjectsArgs, r
 		// Set delimiter value for "s3:delimiter" policy conditionals.
 		r.Header.Set("delimiter", SlashSeparator)
 
-		readable := globalIAMSys.IsAllowed(iampolicy.Args{
+		readable := globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.ListBucketAction,
 			BucketName:      args.BucketName,
@@ -561,7 +550,7 @@ func (web *webAPIHandlers) ListObjects(r *http.Request, args *ListObjectsArgs, r
 			Claims:          claims.Map(),
 		})
 
-		writable := globalIAMSys.IsAllowed(iampolicy.Args{
+		writable := globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.PutObjectAction,
 			BucketName:      args.BucketName,
@@ -743,7 +732,7 @@ next:
 		if !HasSuffix(objectName, SlashSeparator) && objectName != "" {
 			// Check permissions for non-anonymous user.
 			if authErr != errNoAuthToken {
-				if !globalIAMSys.IsAllowed(iampolicy.Args{
+				if globalMode != FS && !globalIAMSys.IsAllowed(iampolicy.Args{
 					AccountName:     claims.AccessKey,
 					Action:          iampolicy.DeleteObjectAction,
 					BucketName:      args.BucketName,
@@ -1162,7 +1151,7 @@ func (web *webAPIHandlers) Upload(w http.ResponseWriter, r *http.Request) {
 
 	// For authenticated users apply IAM policy.
 	if authErr == nil {
-		if !globalIAMSys.IsAllowed(iampolicy.Args{
+		if globalMode != FS && !globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.PutObjectAction,
 			BucketName:      bucket,
@@ -1174,7 +1163,7 @@ func (web *webAPIHandlers) Upload(w http.ResponseWriter, r *http.Request) {
 			writeWebErrorResponse(w, errAuthentication)
 			return
 		}
-		if globalIAMSys.IsAllowed(iampolicy.Args{
+		if globalMode == FS && globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.PutObjectRetentionAction,
 			BucketName:      bucket,
@@ -1185,7 +1174,7 @@ func (web *webAPIHandlers) Upload(w http.ResponseWriter, r *http.Request) {
 		}) {
 			retPerms = ErrNone
 		}
-		if globalIAMSys.IsAllowed(iampolicy.Args{
+		if globalMode == FS && globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.PutObjectLegalHoldAction,
 			BucketName:      bucket,
@@ -1429,7 +1418,7 @@ func (web *webAPIHandlers) Download(w http.ResponseWriter, r *http.Request) {
 
 	// For authenticated users apply IAM policy.
 	if authErr == nil {
-		if !globalIAMSys.IsAllowed(iampolicy.Args{
+		if globalMode != FS && !globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.GetObjectAction,
 			BucketName:      bucket,
@@ -1441,7 +1430,7 @@ func (web *webAPIHandlers) Download(w http.ResponseWriter, r *http.Request) {
 			writeWebErrorResponse(w, errAuthentication)
 			return
 		}
-		if globalIAMSys.IsAllowed(iampolicy.Args{
+		if globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.GetObjectRetentionAction,
 			BucketName:      bucket,
@@ -1452,7 +1441,7 @@ func (web *webAPIHandlers) Download(w http.ResponseWriter, r *http.Request) {
 		}) {
 			getRetPerms = ErrNone
 		}
-		if globalIAMSys.IsAllowed(iampolicy.Args{
+		if globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 			AccountName:     claims.AccessKey,
 			Action:          iampolicy.GetObjectLegalHoldAction,
 			BucketName:      bucket,
@@ -1638,7 +1627,7 @@ func (web *webAPIHandlers) DownloadZip(w http.ResponseWriter, r *http.Request) {
 	// For authenticated users apply IAM policy.
 	if authErr == nil {
 		for _, object := range args.Objects {
-			if !globalIAMSys.IsAllowed(iampolicy.Args{
+			if globalMode != FS && !globalIAMSys.IsAllowed(iampolicy.Args{
 				AccountName:     claims.AccessKey,
 				Action:          iampolicy.GetObjectAction,
 				BucketName:      args.BucketName,
@@ -1651,7 +1640,7 @@ func (web *webAPIHandlers) DownloadZip(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			retentionPerm := ErrAccessDenied
-			if globalIAMSys.IsAllowed(iampolicy.Args{
+			if globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 				AccountName:     claims.AccessKey,
 				Action:          iampolicy.GetObjectRetentionAction,
 				BucketName:      args.BucketName,
@@ -1665,7 +1654,7 @@ func (web *webAPIHandlers) DownloadZip(w http.ResponseWriter, r *http.Request) {
 			getRetPerms = append(getRetPerms, retentionPerm)
 
 			legalHoldPerm := ErrAccessDenied
-			if globalIAMSys.IsAllowed(iampolicy.Args{
+			if globalMode == FS || globalIAMSys.IsAllowed(iampolicy.Args{
 				AccountName:     claims.AccessKey,
 				Action:          iampolicy.GetObjectLegalHoldAction,
 				BucketName:      args.BucketName,
@@ -2411,6 +2400,14 @@ func toWebAPIError(ctx context.Context, err error) APIError {
 		return getAPIError(ErrObjectTampered)
 	case errMethodNotAllowed:
 		return getAPIError(ErrMethodNotAllowed)
+	case errAccessDenied:
+		if globalMode == FS {
+			return getAPIError(ErrAccessDenied)
+		}
+	case errDiskAccessDenied:
+		if globalMode == FS {
+			return getAPIError(ErrAccessDenied)
+		}
 	}
 
 	// Convert error type to api error code.
@@ -2446,6 +2443,10 @@ func toWebAPIError(ctx context.Context, err error) APIError {
 			Code:           "NotImplemented",
 			HTTPStatusCode: http.StatusBadRequest,
 			Description:    "Functionality not implemented",
+		}
+	case PrefixAccessDenied:
+		if globalMode == FS {
+			return getAPIError(ErrAccessDenied)
 		}
 	}
 

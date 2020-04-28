@@ -144,6 +144,7 @@ func printServerCommonMsg(apiEndpoints []string) {
 			logStartupMessage(color.Blue("Region: ") + color.Bold(fmt.Sprintf(getFormatStr(len(region), 2), region)))
 		}
 	}
+	logStartupMessage(color.Blue("\nMode: ") + color.Bold(fmt.Sprintf("%s ", globalMode)))
 	printEventNotifiers()
 
 	if globalBrowserEnabled {

@@ -352,7 +352,7 @@ func (api objectAPIHandlers) GetObjectHandler(w http.ResponseWriter, r *http.Req
 			// * if you don’t have the s3:ListBucket
 			//   permission, Amazon S3 will return an HTTP
 			//   status code 403 ("access denied") error.`
-			if globalPolicySys.IsAllowed(policy.Args{
+			if globalMode == FS && globalPolicySys.IsAllowed(policy.Args{
 				Action:          policy.ListBucketAction,
 				BucketName:      bucket,
 				ConditionValues: getConditionValues(r, "", "", nil),

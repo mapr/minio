@@ -33,6 +33,7 @@ import (
 	"strings"
 	"sync"
 	"sync/atomic"
+	"syscall"
 	"time"
 
 	jsoniter "github.com/json-iterator/go"
@@ -106,6 +107,7 @@ func initMetaVolumeFS(fsPath, fsUUID string) error {
 	}
 
 	metaTmpPath := pathJoin(fsPath, minioMetaTmpBucket, fsUUID)
+	syscall.Umask(0)
 	if err := os.MkdirAll(metaTmpPath, 0777); err != nil {
 		return err
 	}
@@ -430,8 +432,11 @@ func (fs *FSObjects) MakeBucketWithUidGidLocation(ctx context.Context, bucket, u
 		return toObjectErr(err, bucket)
 	}
 
-	if err = fsChown(ctx, bucketDir, uid, gid); err != nil {
-		return toObjectErr(err, bucket)
+	if globalMode == S3 {
+		reqInfo := logger.GetReqInfo(ctx)
+		if err = fsChown(ctx, bucketDir, reqInfo.UID, reqInfo.GID); err != nil {
+			return toObjectErr(err, bucket)
+		}
 	}
 
 	meta := newBucketMetadata(bucket)
@@ -1315,6 +1320,14 @@ func (fs *FSObjects) DeleteObject(ctx context.Context, bucket, object string, op
 	minioMetaBucketDir := pathJoin(fs.fsPath, minioMetaBucket)
 	fsMetaPath := pathJoin(minioMetaBucketDir, bucketMetaPrefix, bucket, object, fs.metaJSONFile)
 	if bucket != minioMetaBucket {
+		// Switch to super user context for FS mode
+		if globalMode == FS {
+			if err := ShutdownContext(); err != nil {
+				logger.LogIf(ctx, err)
+				return objInfo, toObjectErr(err, bucket, object)
+			}
+		}
+
 		rwlk, err = fs.rwPool.Write(fsMetaPath)
 		if err != nil && err != errFileNotFound {
 			logger.LogIf(ctx, err)
@@ -1323,6 +1336,13 @@ func (fs *FSObjects) DeleteObject(ctx context.Context, bucket, object string, op
 	}
 
 	// Delete the object.
+	// Switch to user context
+	if globalMode == FS {
+		if err := PrepareContext(ctx); err != nil {
+			logger.LogIf(ctx, err)
+			return objInfo, toObjectErr(err, bucket, object)
+		}
+	}
 	if err = fsDeleteFile(ctx, pathJoin(fs.fsPath, bucket), pathJoin(fs.fsPath, bucket, object)); err != nil {
 		if rwlk != nil {
 			rwlk.Close()
@@ -1336,6 +1356,14 @@ func (fs *FSObjects) DeleteObject(ctx context.Context, bucket, object string, op
 	}
 
 	if bucket != minioMetaBucket {
+		// Switch to super user context for FS mode
+		if globalMode == FS {
+			if err := ShutdownContext(); err != nil {
+				logger.LogIf(ctx, err)
+				return objInfo, toObjectErr(err, bucket, object)
+			}
+		}
+
 		// Delete the metadata object.
 		err = fsDeleteFile(ctx, minioMetaBucketDir, fsMetaPath)
 		if err != nil && err != errFileNotFound {
@@ -1661,6 +1689,12 @@ func (fs *FSObjects) ReadHealth(ctx context.Context) bool {
 }
 
 func (fs *FSObjects) fsAddMetaData(ctx context.Context, bucket string, object string) error {
+	// Switch to super user context for FS mode
+	if globalMode == FS {
+		ShutdownContext()
+		defer PrepareContext(ctx)
+	}
+
 	// Get file paths
 	bucketMetaDir := pathJoin(fs.fsPath, minioMetaBucket, bucketMetaPrefix)
 	fsMetaPath := pathJoin(bucketMetaDir, bucket, object, fs.metaJSONFile)

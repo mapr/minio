@@ -3,7 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/minio/minio-go/v6/pkg/set"
+	"github.com/minio/minio-go/v7/pkg/set"
 	"github.com/minio/minio/cmd/logger"
 	"io/ioutil"
 )
@@ -36,7 +36,7 @@ func parseMapRMinioConfig(maprfsConfigPath string) (config MapRMinioConfig, err 
 	}
 
 	if config.DeploymentMode == "" {
-		config.DeploymentMode = "S3"
+		config.DeploymentMode = "FS"
 	}
 
 	if !isSupportedDeploymentMode(config.DeploymentMode) {

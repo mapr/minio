@@ -104,6 +104,7 @@ func reliableMkdirAll(dirPath string, mode os.FileMode) (err error) {
 	i := 0
 	for {
 		// Creates all the parent directories, with mode 0777 mkdir honors system umask.
+		syscall.Umask(0)
 		if err = os.MkdirAll(dirPath, mode); err != nil {
 			// Retry only for the first retryable error.
 			if osIsNotExist(err) && i == 0 {
@@ -203,7 +204,26 @@ func renameAllWithUidGid(srcFilePath, dstFilePath, uid, gid string) (err error) 
 		return err
 	}
 
-	if err = reliableRenameWithUidGid(srcFilePath, dstFilePath, uid, gid); err != nil {
+	if globalMode == FS {
+		if err := PrepareContextUidGid(uid, gid); err != nil {
+			return err
+		}
+		defer ShutdownContext()
+
+		err = reliableRename(srcFilePath, dstFilePath)
+		if err != nil {
+			return err
+		}
+
+		if err := ShutdownContext(); err != nil {
+			return err
+		}
+		err = chown(dstFilePath, uid, gid)
+	} else if globalMode == S3 {
+		err = reliableRenameWithUidGid(srcFilePath, dstFilePath, uid, gid)
+	}
+
+	if err != nil {
 		switch {
 		case isSysErrNotDir(err) && !osIsNotExist(err):
 			// Windows can have both isSysErrNotDir(err) and osIsNotExist(err) returning

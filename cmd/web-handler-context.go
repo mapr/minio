@@ -235,6 +235,9 @@ func newWebContext(r *http.Request, args ToKeyValuer, api string) context.Contex
 	object := argsMap.Object()
 	prefix := argsMap.Prefix()
 
+	// getting credentials for user that send request
+	cred := getReqAccessCred(r, "")
+
 	if prefix != "" {
 		object = prefix
 	}
@@ -246,6 +249,8 @@ func newWebContext(r *http.Request, args ToKeyValuer, api string) context.Contex
 		API:          api,
 		BucketName:   bucket,
 		ObjectName:   object,
+		UID:          cred.UID,
+		GID:          cred.GID,
 	}
 	return logger.SetReqInfo(GlobalContext, reqInfo)
 }

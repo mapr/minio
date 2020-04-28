@@ -739,6 +739,8 @@ func newContext(r *http.Request, w http.ResponseWriter, api string) context.Cont
 	if prefix != "" {
 		object = prefix
 	}
+	// getting credentials for user that send request
+	cred := getReqAccessCred(r, "")
 	reqInfo := &logger.ReqInfo{
 		DeploymentID: globalDeploymentID,
 		RequestID:    w.Header().Get(xhttp.AmzRequestID),
@@ -748,6 +750,8 @@ func newContext(r *http.Request, w http.ResponseWriter, api string) context.Cont
 		API:          api,
 		BucketName:   bucket,
 		ObjectName:   object,
+		UID:          cred.UID,
+		GID:          cred.GID,
 	}
 	return logger.SetReqInfo(r.Context(), reqInfo)
 }

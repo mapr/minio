@@ -18,14 +18,15 @@ package cmd
 
 import (
 	"context"
+	"github.com/minio/minio/cmd/logger"
+	"github.com/minio/minio/pkg/lock"
 	"io"
 	"os"
 	pathutil "path"
 	"runtime"
 	"strings"
 
-	"github.com/minio/minio/cmd/logger"
-	"github.com/minio/minio/pkg/lock"
+	"syscall"
 )
 
 // Removes only the file at given path does not remove
@@ -120,7 +121,8 @@ func fsMkdir(ctx context.Context, dirPath string) (err error) {
 		return err
 	}
 
-	if err = os.Mkdir((dirPath), 0777); err != nil {
+	syscall.Umask(0)
+	if err = os.Mkdir((dirPath), 0755); err != nil {
 		switch {
 		case osIsExist(err):
 			return errVolumeExists
@@ -208,7 +210,9 @@ func fsStatFile(ctx context.Context, statFile string) (os.FileInfo, error) {
 	if err != nil {
 		err = osErrToFileErr(err)
 		if err != errFileNotFound {
-			logger.LogIf(ctx, err)
+			if globalMode != FS {
+				logger.LogIf(ctx, err)
+			}
 		}
 		return nil, err
 	}
@@ -304,7 +308,7 @@ func fsCreateFile(ctx context.Context, filePath string, reader io.Reader, falloc
 	if globalFSOSync {
 		flags = flags | os.O_SYNC
 	}
-	writer, err := lock.Open(filePath, flags, 0666)
+	writer, err := lock.Open(filePath, flags, 0644)
 	if err != nil {
 		return 0, osErrToFileErr(err)
 	}
@@ -392,7 +396,9 @@ func fsRenameFileWithUidGid(ctx context.Context, sourcePath, destPath, uid, gid 
 	}
 
 	if err := renameAllWithUidGid(sourcePath, destPath, uid, gid); err != nil {
-		logger.LogIf(ctx, err)
+		if globalMode != FS && !strings.Contains(err.Error(), "permission denied") {
+			logger.LogIf(ctx, err)
+		}
 		return err
 	}
 
@@ -474,7 +480,9 @@ func fsDeleteFile(ctx context.Context, basePath, deletePath string) error {
 
 	if err := deleteFile(basePath, deletePath, false); err != nil {
 		if err != errFileNotFound {
-			logger.LogIf(ctx, err)
+			if globalMode != FS && err != errAccessDenied {
+				logger.LogIf(ctx, err)
+			}
 		}
 		return err
 	}

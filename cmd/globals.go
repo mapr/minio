@@ -290,6 +290,7 @@ var (
 
 	globalForwarder *handlers.Forwarder
 	// Add new variable global values here.
+	globalMode         MapRMode
 	globalMaprMinioCfg MapRMinioConfig
 )
 
