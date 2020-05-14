@@ -290,6 +290,7 @@ var (
 
 	globalForwarder *handlers.Forwarder
 	// Add new variable global values here.
+	globalMaprMinioCfg MapRMinioConfig
 )
 
 // Returns minio global information, as a key value map.

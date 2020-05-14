@@ -301,6 +301,25 @@ func handleCommonEnvVars() {
 	// in-place update is off.
 	globalInplaceUpdateDisabled = strings.EqualFold(env.Get(config.EnvUpdate, config.EnableOn), config.EnableOff)
 
+	if globalMaprMinioCfg.AccessKey != "" || globalMaprMinioCfg.SecretKey != "" {
+		cred, err := auth.CreateCredentials(globalMaprMinioCfg.AccessKey, globalMaprMinioCfg.SecretKey)
+		if err != nil {
+			logger.Fatal(config.ErrInvalidCredentials(err),
+				"Unable to validate credentials inherited from the minio.json config")
+		}
+		globalActiveCred = cred
+		globalConfigEncrypted = true
+	}
+
+	if globalMaprMinioCfg.OldAccessKey != "" && globalMaprMinioCfg.OldSecretKey != "" {
+		oldCred, err := auth.CreateCredentials(globalMaprMinioCfg.OldAccessKey, globalMaprMinioCfg.OldSecretKey)
+		if err != nil {
+			logger.Fatal(config.ErrInvalidCredentials(err),
+				"Unable to validate the old credentials inherited from the shell environment")
+		}
+		globalOldCred = oldCred
+	}
+
 	if env.IsSet(config.EnvAccessKey) || env.IsSet(config.EnvSecretKey) {
 		cred, err := auth.CreateCredentials(env.Get(config.EnvAccessKey, ""), env.Get(config.EnvSecretKey, ""))
 		if err != nil {

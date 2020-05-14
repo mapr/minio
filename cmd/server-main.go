@@ -62,6 +62,11 @@ var ServerFlags = []cli.Flag{
 		Value: 0,
 		Usage: "Log verbosity level (1 - Panic, 2 - Fatal, 3 - Error, 4 - Warning, 5 - Info, 6 - Debug).",
 	},
+	cli.StringFlag{
+		Name:  "minio-config, M",
+		Value: "",
+		Usage: "Path to MapRFS-specific config to configure modes and logs",
+	},
 	cli.BoolFlag{
 		Name:  "check-config",
 		Usage: "Check configuration files, do pre-flight check and exit with status code",
@@ -189,21 +194,40 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 		globalIsErasure = true
 	}
 
-	// Set up logger properties
-	logFile := ctx.String("log-file")
+	var logLevel int
+	var logFile string
+	if processMapRFSConfig(ctx) == nil && !ctx.Bool("check-config") {
+		logFile = globalMaprMinioCfg.LogPath
+		logLevel = globalMaprMinioCfg.LogLevel
+	} else {
 
-	logger.SetOutput(logFile)
+		// Set up logger properties
+		logFile = ctx.String("log-file")
 
-	logLevel := ctx.Int("log-level")
-	if logLevel == 0 {
-
-		// By default set loglevel to Error
+		logLevel = ctx.Int("log-level")
 		if logLevel == 0 {
-			logLevel = 4
+
+			// By default set loglevel to Error
+			if logLevel == 0 {
+				logLevel = 4
+			}
 		}
 	}
 
+	logger.SetOutput(logFile)
 	logger.SetLevel(logrus.Level(logLevel - 1))
+}
+
+func processMapRFSConfig(ctx *cli.Context) error {
+	var err error
+	maprfsConfig := ctx.String("minio-config")
+	if maprfsConfig != "" {
+		globalMaprMinioCfg, err = parseMapRMinioConfig(maprfsConfig)
+		logger.FatalIf(err, "Failed to parse MapR Minio config "+maprfsConfig)
+		return err
+	} else {
+		return errConfigNotFound
+	}
 }
 
 func serverHandleEnvVars() {
@@ -581,6 +605,10 @@ func serverMain(ctx *cli.Context) {
 		msg := fmt.Sprintf("Detected default credentials '%s', please change the credentials immediately using 'MINIO_ROOT_USER' and 'MINIO_ROOT_PASSWORD'", globalActiveCred)
 		logger.StartupMessage(color.RedBold(msg))
 	}
+
+	// Removing old accessKey and secretKey from config
+	maprfsConfig := ctx.String("minio-config")
+	globalMaprMinioCfg.updateConfig(maprfsConfig)
 
 	// Exit with correct status after all initialisations if pre-flight check enabled
 	if ctx.Bool("check-config") {

@@ -51,14 +51,14 @@ case $1 in
 
         echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
         checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
-        $MINIO_DIR/bin/minio server $mountPath  -L $MINIO_LOG_FILE --address :$port  --check-config
+        $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port --check-config
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
         echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
-            nohup $MINIO_DIR/bin/minio server $mountPath -L $MINIO_LOG_FILE --address :$port > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
+            nohup $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
 
         ;;
     stop)
