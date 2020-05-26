@@ -201,7 +201,7 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	var logLevel int
 	var logFile string
 	var modeString string
-	if processMapRFSConfig(ctx) == nil && !ctx.Bool("check-config") {
+	if processMapRFSConfig(ctx) == nil {
 		logFile = globalMaprMinioCfg.LogPath
 		logLevel = globalMaprMinioCfg.LogLevel
 		modeString = globalMaprMinioCfg.DeploymentMode
@@ -226,7 +226,11 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 
 	mode := StringToMode(modeString)
 	if mode == UNKNOWN {
-		globalMode = FS
+		msg := "Unsupported deployment mode specified: " + modeString
+		if ctx.Bool("check-config") {
+			fmt.Println(msg)
+		}
+		logger.FatalIf(errInvalidArgument, msg)
 	} else {
 		globalMode = mode
 	}
@@ -237,7 +241,11 @@ func processMapRFSConfig(ctx *cli.Context) error {
 	maprfsConfig := ctx.String("minio-config")
 	if maprfsConfig != "" {
 		globalMaprMinioCfg, err = parseMapRMinioConfig(maprfsConfig)
-		logger.FatalIf(err, "Failed to parse MapR Minio config "+maprfsConfig)
+		msg := "Failed to parse MapR Minio config " + maprfsConfig
+		if err != nil && ctx.Bool("check-config") {
+			fmt.Println(msg)
+		}
+		logger.FatalIf(err, msg)
 		return err
 	} else {
 		return errConfigNotFound

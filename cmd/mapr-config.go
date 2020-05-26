@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/minio/minio-go/v7/pkg/set"
 	"github.com/minio/minio/cmd/logger"
 	"io/ioutil"
 )
@@ -35,26 +34,7 @@ func parseMapRMinioConfig(maprfsConfigPath string) (config MapRMinioConfig, err 
 		return config, err
 	}
 
-	if config.DeploymentMode == "" {
-		config.DeploymentMode = "FS"
-	}
-
-	if !isSupportedDeploymentMode(config.DeploymentMode) {
-		logger.FatalIf(errInvalidArgument, "Unsupported deployment mode specified"+config.DeploymentMode)
-		return config, errInvalidArgument
-	}
-
 	return config, err
-}
-
-func isSupportedDeploymentMode(mode string) bool {
-	supportedDeploymentModes := set.StringSet{
-		"FS": {},
-		"S3": {},
-	}
-
-	_, ok := supportedDeploymentModes[mode]
-	return ok
 }
 
 func (config MapRMinioConfig) updateConfig(maprfsConfigPath string) error {

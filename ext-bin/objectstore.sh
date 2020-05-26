@@ -9,17 +9,14 @@ DEPLOYMENT_TYPE_FILE=.deployment_type
 
 function checkSecurityScenario() {
     configMode=$(grep deploymentMode $MAPR_S3_CONFIG | sed -e "s/\s*\"deploymentMode\"\s*:\s*\"\(.*\)\",/\1/g")
-    if [ -z $configMode ]
-    then
-        configMode="mixed"
-    fi
+    echo "Config mode: $configMode"
 
     fsPath=$(grep fsPath $MAPR_S3_CONFIG | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
 
     if [ -f $fsPath/$DEPLOYMENT_TYPE_FILE ]; then
         currentMode=$(cat $fsPath/$DEPLOYMENT_TYPE_FILE)
         if [ ! $currentMode = $configMode ]; then
-           echo "Warning: running on previously populated storage with different deploymentMode (previous: $currentMode)"
+           echo "Warning: You have changed mode to $configMode from $currentMode for $fsPath"
         fi
     fi
     mkdir -p $fsPath
