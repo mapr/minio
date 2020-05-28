@@ -44,7 +44,7 @@ func (fs MapRFSObjects) DeleteBucket(ctx context.Context, bucket string, forceDe
 	defer ShutdownContext()
 
 	err := fs.FSObjects.DeleteBucket(ctx, bucket, forceDelete)
-	if strings.Contains(err.Error(), "permission denied") {
+	if err != nil && strings.Contains(err.Error(), "permission denied") {
 		return PrefixAccessDenied{
 			Bucket: bucket,
 			Object: "/",
