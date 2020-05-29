@@ -89,6 +89,13 @@ if [ ! -e "${KEYTOOL:-}" ]; then
     exit 1
 fi
 
+function updateTempWardenFile() {
+    port=$(grep port $MAPR_S3_CONFIG | sed -e "s/\s*\"port\"\s*:\s*\"\(.*\)\",/\1/g")
+    logPath=$(grep logPath $MAPR_S3_CONFIG | sed -e "s/\s*\"logPath\"\s*:\s*\"\(.*\)\",/\1/g")
+    sed -i "s~service.port=.*~service.port=$port~" $WARDEN_CONF
+    sed -i "s~service.logs.location=.*~service.logs.location=$logPath~" $WARDEN_CONF
+}
+
 function copyWardenFile() {
     cp $WARDEN_CONF /opt/mapr/conf/conf.d
 }
@@ -180,5 +187,6 @@ fi
 fixupMfsJson
 tweakPermissions
 if [ "x$isClient" == "xfalse" ] ; then
+updateTempWardenFile
 copyWardenFile
 fi
