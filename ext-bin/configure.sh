@@ -90,8 +90,9 @@ if [ ! -e "${KEYTOOL:-}" ]; then
 fi
 
 function updateTempWardenFile() {
-    port=$(grep port $MAPR_S3_CONFIG | sed -e "s/\s*\"port\"\s*:\s*\"\(.*\)\",/\1/g")
-    logPath=$(grep logPath $MAPR_S3_CONFIG | sed -e "s/\s*\"logPath\"\s*:\s*\"\(.*\)\",/\1/g")
+    port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
+    logFile=$(grep logPath $MAPR_S3_CONFIG | sed -e "s/\s*\"logPath\"\s*:\s*\"\(.*\)\",/\1/g")
+    logPath=$(dirname "${logFile}")
     sed -i "s~service.port=.*~service.port=$port~" $WARDEN_CONF
     sed -i "s~service.logs.location=.*~service.logs.location=$logPath~" $WARDEN_CONF
 }

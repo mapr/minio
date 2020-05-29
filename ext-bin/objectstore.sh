@@ -31,31 +31,34 @@ fi
 
 case $1 in
     start)
-        if [ ! -d $MINIO_DIR/logs ]
+        logFile=$(cat $MAPR_S3_CONFIG | grep 'logPath' | sed -e "s/\s*\"logPath\"\s*:\s*\"\(.*\)\",/\1/g")
+        logPath=$(dirname "${logFile}")
+
+        if [ ! -d $logPath ]
         then
-            mkdir $MINIO_DIR/logs
+            mkdir $logPath
         fi
 
         #Setting port
         if [ -f "$MAPR_HOME/conf/conf.d/warden.objectstore.conf" ]; then
-        port=$(cat $MAPR_HOME/conf/conf.d/warden.objectstore.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
+          port=$(cat $MAPR_HOME/conf/conf.d/warden.objectstore.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
         sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
         else
-        port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
+          port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
         fi
 
         mountPath=$(cat $MAPR_S3_CONFIG | grep 'fsPath' | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
 
-        echo "[$(date -R)] Minio pre-flight check" >> "$MINIO_LOG_FILE"
-        checkSecurityScenario >> "$MINIO_LOG_FILE" 2>&1
+        echo "[$(date -R)] Minio pre-flight check" >> "$logFile"
+        checkSecurityScenario >> "$logFile" 2>&1
         $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port --check-config
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
-        echo "[$(date -R)] Running minio" >> "$MINIO_LOG_FILE"
-            nohup $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port > /dev/null 2>&1 & echo $! > $MINIO_PID_FILE
+        echo "[$(date -R)] Running minio" >> "$logFile"
+            nohup $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port >> "$logFile" 2>&1 & echo $! > $MINIO_PID_FILE
 
         ;;
     stop)
