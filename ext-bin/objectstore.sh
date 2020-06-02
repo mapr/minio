@@ -4,6 +4,7 @@ MAPR_HOME=/opt/mapr
 MINIO_DIR=$MAPR_HOME/objectstore-client/objectstore-client-2.0.0
 MINIO_PID_FILE=$MAPR_HOME/pid/objectstore.pid
 MAPR_S3_CONFIG=$MINIO_DIR/conf/minio.json
+MAPR_CERTIFICATE_DIR=$MINIO_DIR/conf/certs
 MINIO_LOG_FILE=$MINIO_DIR/logs/minio.log
 DEPLOYMENT_TYPE_FILE=.deployment_type
 
@@ -51,14 +52,14 @@ case $1 in
 
         echo "[$(date -R)] Minio pre-flight check" >> "$logFile"
         checkSecurityScenario >> "$logFile" 2>&1
-        $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port --check-config
+        $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --certs-dir $MAPR_CERTIFICATE_DIR --address :$port --check-config
         if [ $? -ne 0 ]
         then
             echo "Minio pre-flight check failed"
             exit 1
         fi
         echo "[$(date -R)] Running minio" >> "$logFile"
-            nohup $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --address :$port >> "$logFile" 2>&1 & echo $! > $MINIO_PID_FILE
+            nohup $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --certs-dir $MAPR_CERTIFICATE_DIR --address :$port >> "$logFile" 2>&1 & echo $! > $MINIO_PID_FILE
 
         ;;
     stop)
