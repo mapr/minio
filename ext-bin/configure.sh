@@ -105,6 +105,7 @@ function tweakPermissions() {
     chown -R ${MAPR_USER}:${MAPR_GROUP} $OBJECTSTORE_HOME/conf
     chown ${MAPR_USER}:${MAPR_GROUP} $OBJECTSTORE_HOME
     chown -R ${MAPR_USER}:${MAPR_GROUP} $OBJECTSTORE_HOME/bin
+    chown -R ${MAPR_USER}:${MAPR_GROUP} $OBJECTSTORE_HOME/util
     chmod 6150 $MINIO_BINARY
     setcap "cap_setuid,cap_setgid+eip" $MINIO_BINARY
     chmod 700 $MAPR_S3_CONFIG
