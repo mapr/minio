@@ -741,6 +741,14 @@ func newContext(r *http.Request, w http.ResponseWriter, api string) context.Cont
 	}
 	// getting credentials for user that send request
 	cred := getReqAccessCred(r, "")
+	// if token is used
+	if cred.AccessKey == "" {
+		token := r.URL.Query().Get("token")
+		claims, _, authErr := webTokenAuthenticate(token)
+		if authErr == nil {
+			cred = globalIAMSys.iamUsersMap[claims.AccessKey]
+		}
+	}
 	reqInfo := &logger.ReqInfo{
 		DeploymentID: globalDeploymentID,
 		RequestID:    w.Header().Get(xhttp.AmzRequestID),
