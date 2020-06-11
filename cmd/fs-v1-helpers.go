@@ -98,8 +98,9 @@ func fsRemoveDir(ctx context.Context, dirPath string) (err error) {
 			return errVolumeNotFound
 		} else if isSysErrNotEmpty(err) {
 			return errVolumeNotEmpty
+		} else if globalMode != FS && !os.IsPermission(err) {
+			logger.LogIf(ctx, err)
 		}
-		logger.LogIf(ctx, err)
 		return err
 	}
 
@@ -127,7 +128,9 @@ func fsMkdir(ctx context.Context, dirPath string) (err error) {
 		case osIsExist(err):
 			return errVolumeExists
 		case osIsPermission(err):
-			logger.LogIf(ctx, errDiskAccessDenied)
+			if globalMode != FS {
+				logger.LogIf(ctx, errDiskAccessDenied)
+			}
 			return errDiskAccessDenied
 		case isSysErrNotDir(err):
 			// File path cannot be verified since

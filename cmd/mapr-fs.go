@@ -5,6 +5,7 @@ import (
 	"errors"
 	"github.com/minio/minio/cmd/logger"
 	"net/http"
+	"os"
 	"runtime"
 	"strconv"
 	"strings"
@@ -34,7 +35,12 @@ func (fs MapRFSObjects) MakeBucketWithLocation(ctx context.Context, bucket strin
 	}
 	defer ShutdownContext()
 
-	return fs.FSObjects.MakeBucketWithLocation(ctx, bucket, opts)
+	err := fs.FSObjects.MakeBucketWithLocation(ctx, bucket, opts)
+	if err == errDiskAccessDenied {
+		return errAccessDenied
+	}
+
+	return err
 }
 
 func (fs MapRFSObjects) DeleteBucket(ctx context.Context, bucket string, forceDelete bool) error {
@@ -44,7 +50,7 @@ func (fs MapRFSObjects) DeleteBucket(ctx context.Context, bucket string, forceDe
 	defer ShutdownContext()
 
 	err := fs.FSObjects.DeleteBucket(ctx, bucket, forceDelete)
-	if err != nil && strings.Contains(err.Error(), "permission denied") {
+	if err != nil && os.IsPermission(err) {
 		return PrefixAccessDenied{
 			Bucket: bucket,
 			Object: "/",
@@ -60,12 +66,16 @@ func (fs MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker,
 	}
 	defer ShutdownContext()
 
-	info, err := fs.FSObjects.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
-	if err != nil && strings.HasPrefix(err.Error(), "Prefix access is denied:") {
-		return info, errAccessDenied
-	}
+	return fs.FSObjects.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
+}
 
-	return info, err
+func (fs MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, continuationToken, delimiter string, maxKeys int, fetchOwner bool, startAfter string) (result ListObjectsV2Info, err error) {
+	if err := PrepareContext(ctx); err != nil {
+		return ListObjectsV2Info{}, err
+	}
+	defer ShutdownContext()
+
+	return fs.FSObjects.ListObjectsV2(ctx, bucket, prefix, continuationToken, delimiter, maxKeys, fetchOwner, startAfter)
 }
 
 func (fs MapRFSObjects) GetObjectNInfo(ctx context.Context, bucket, object string, rs *HTTPRangeSpec, h http.Header, lockType LockType, opts ObjectOptions) (reader *GetObjectReader, err error) {

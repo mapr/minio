@@ -2872,6 +2872,13 @@ func (api objectAPIHandlers) DeleteObjectHandler(w http.ResponseWriter, r *http.
 			writeErrorResponse(ctx, w, toAPIError(ctx, err), r.URL, guessIsBrowserReq(r))
 			return
 		}
+		// Ignore delete object errors while replying to client, since we are suppposed to reply only 204.
+		// Ignore delete object errors while replying to client, since we are suppposed to reply only 204.
+		// For FS mode we should provide correct reply
+		if globalMode == FS {
+			writeErrorResponse(ctx, w, toAPIError(ctx, err), r.URL, guessIsBrowserReq(r))
+			return
+		}
 	}
 
 	if objInfo.Name == "" {
