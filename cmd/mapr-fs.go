@@ -68,6 +68,14 @@ func (fs MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker,
 	}
 	defer ShutdownContext()
 
+	// Temporary hack to handle access denied for ListObjects,
+	// since tree walk in fs-v1 is done in the context of another thread.
+	// TODO: either rewrite fs-v1.ListObjects
+	// or update treeWalk to use fs impersonation.
+	if err := fs.checkListPermissions(ctx, bucket, prefix, delimiter); err != nil {
+		return result, err
+	}
+
 	return fs.FSObjects.ListObjects(ctx, bucket, prefix, marker, delimiter, maxKeys)
 }
 
@@ -76,6 +84,14 @@ func (fs MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, conti
 		return ListObjectsV2Info{}, err
 	}
 	defer ShutdownContext()
+
+	// Temporary hack to handle access denied for ListObjects,
+	// since tree walk in fs-v1 is done in the context of another thread.
+	// TODO: either rewrite fs-v1.ListObjects
+	// or update treeWalk to use fs impersonation.
+	if err := fs.checkListPermissions(ctx, bucket, prefix, delimiter); err != nil {
+		return result, err
+	}
 
 	return fs.FSObjects.ListObjectsV2(ctx, bucket, prefix, continuationToken, delimiter, maxKeys, fetchOwner, startAfter)
 }
@@ -230,6 +246,29 @@ func ShutdownContext() error {
 	if err := Setfsgid(syscall.Getegid()); err != nil {
 		return err
 	}
+
+	return nil
+}
+
+func (fs MapRFSObjects) checkListPermissions(ctx context.Context, bucket, prefix, delimiter string) error {
+	var bucketPath = bucket
+	if prefix != "" {
+		bucketPath += delimiter + prefix
+	}
+
+	path, err := fs.getBucketDir(ctx, bucketPath)
+	if err != nil {
+		return err
+	}
+
+	f, err := os.Open(path)
+	if err != nil && !os.IsNotExist(err) {
+		return PrefixAccessDenied{
+			Bucket: bucket,
+			Object: prefix,
+		}
+	}
+	f.Close()
 
 	return nil
 }
