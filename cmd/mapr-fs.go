@@ -24,6 +24,8 @@ func NewMapRFSObjectLayer(fsPath string) (ObjectLayer, error) {
 		return nil, err
 	}
 
+	logger.Info("Started with UID: " + strconv.Itoa(syscall.Geteuid()) + " GID: " + strconv.Itoa(syscall.Getgid()))
+
 	return &MapRFSObjects{
 		FSObjects: fs.(*FSObjects),
 	}, err
@@ -170,26 +172,38 @@ func SetStringfsgid(fsgid string) (err error) {
 }
 
 func Setfsuid(fsuid int) (err error) {
+	logger.Info("Setting UID to " + strconv.Itoa(fsuid))
 	RawSetfsuid(fsuid)
 	if RawSetfsuid(-1) != fsuid {
 		return errors.New("Failed to perform FS impersonation.")
 	}
 
+	logger.Info("UID is " + strconv.Itoa(fsuid))
+
 	return nil
 }
 
 func Setfsgid(fsgid int) (err error) {
+	logger.Info("Setting GID to " + strconv.Itoa(fsgid))
 	RawSetfsgid(fsgid)
 	if RawSetfsgid(-1) != fsgid {
 		return errors.New("Failed to perform FS impersonation")
 	}
+
+	logger.Info("GID is " + strconv.Itoa(fsgid))
 
 	return nil
 }
 
 func PrepareContext(ctx context.Context) error {
 	reqInfo := logger.GetReqInfo(ctx)
-	return PrepareContextUidGid(reqInfo.UID, reqInfo.GID)
+
+	err := PrepareContextUidGid(reqInfo.UID, reqInfo.GID)
+	if err != nil {
+		logger.LogIf(ctx, err)
+	}
+
+	return err
 }
 
 func PrepareContextUidGid(uid, gid string) error {

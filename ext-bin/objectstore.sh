@@ -33,6 +33,10 @@ fi
 case $1 in
     start)
         logFile=$(cat $MAPR_S3_CONFIG | grep 'logPath' | sed -e "s/\s*\"logPath\"\s*:\s*\"\(.*\)\",/\1/g")
+        if [ -z "$logFile" ]
+        then
+            logFile=$MINIO_LOG_FILE
+        fi
         logPath=$(dirname "${logFile}")
 
         if [ ! -d $logPath ]
