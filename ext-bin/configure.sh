@@ -8,7 +8,8 @@ MINIO_BINARY=$OBJECTSTORE_HOME/bin/minio
 MAPR_S3_CONFIG=$OBJECTSTORE_HOME/conf/minio.json
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 sslKeyStore=${INSTALL_DIR}/conf/ssl_keystore
-storePass=mapr123
+manageSSL="${MAPR_HOME}/server/manageSSLKeys.sh"
+storePass="$(fgrep storePass $manageSSL | head -1 |cut -d'=' -f2 )"
 storeFormat=JKS
 storeFormatPKCS12=pkcs12
 isSecure=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/.*\(secure=\)\(true\|false\).*/\2/'`
