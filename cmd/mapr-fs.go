@@ -225,11 +225,11 @@ func PrepareContext(ctx context.Context) error {
 func PrepareContextUidGid(uid, gid string) error {
 	runtime.LockOSThread()
 
-	if err := SetStringfsuid(gid); err != nil {
+	if err := SetStringfsuid(uid); err != nil {
 		return err
 	}
 
-	if err := SetStringfsgid(uid); err != nil {
+	if err := SetStringfsgid(gid); err != nil {
 		return err
 	}
 
