@@ -6,6 +6,7 @@ OBJECTSTORE_CONFIGS=$INSTALL_DIR/objectstore-client
 WARDEN_CONF=$OBJECTSTORE_HOME/conf/warden.objectstore.conf
 MINIO_BINARY=$OBJECTSTORE_HOME/bin/minio
 MAPR_S3_CONFIG=$OBJECTSTORE_HOME/conf/minio.json
+MAPR_CLUSTERS_CONF=$MAPR_HOME/conf/mapr-clusters.conf
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 sslKeyStore=${INSTALL_DIR}/conf/ssl_keystore
 manageSSL="${MAPR_HOME}/server/manageSSLKeys.sh"
@@ -184,7 +185,12 @@ function migrateConfig() {
 
 migrateConfig
 
-if [ "x$isSecure" == "xtrue" ]; then
+maprSecurityStatus=false
+if [ -r $MAPR_CLUSTERS_CONF ]; then
+    maprSecurityStatus=$(head -n 1 $MAPR_CLUSTERS_CONF | grep secure= | sed 's/^.*secure=//' | sed 's/ .*$//')
+fi
+
+if [ "x$maprSecurityStatus" == "xtrue" ]; then
 setupCertificate
 fi
 
