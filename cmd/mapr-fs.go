@@ -8,7 +8,6 @@ import (
 	"os"
 	"runtime"
 	"strconv"
-	"strings"
 	"syscall"
 )
 
@@ -136,19 +135,25 @@ func (fs MapRFSObjects) DeleteObjects(ctx context.Context, bucket string, object
 func (fs MapRFSObjects) PutObject(ctx context.Context, bucket, object string, data *PutObjReader, opts ObjectOptions) (objInfo ObjectInfo, err error) {
 	info, err := fs.FSObjects.PutObject(ctx, bucket, object, data, opts)
 
-	if err != nil && strings.Contains(err.Error(), "permission denied") {
+	if err != nil && os.IsPermission(err) {
 		return info, errAccessDenied
 	}
 
 	return info, err
 }
 
-func (fs MapRFSObjects) IsCompressionSupported() bool {
-	return fs.FSObjects.IsCompressionSupported()
-}
+func (fs *MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, dstBucket, dstObject string, srcInfo ObjectInfo, srcOpts, dstOpts ObjectOptions) (oi ObjectInfo, e error) {
+	if err := PrepareContext(ctx); err != nil {
+		return oi, err
+	}
+	defer ShutdownContext()
 
-func (fs MapRFSObjects) IsEncryptionSupported() bool {
-	return fs.FSObjects.IsEncryptionSupported()
+	info, err := fs.FSObjects.CopyObject(ctx, srcBucket, srcObject, dstBucket, dstObject, srcInfo, srcOpts, dstOpts)
+	if err != nil && os.IsPermission(err) {
+		return info, errAccessDenied
+	}
+
+	return info, err
 }
 
 func RawSetfsuid(fsuid int) (prevFsuid int) {
