@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"github.com/minio/minio/cmd/logger"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"runtime"
@@ -258,7 +259,7 @@ func ShutdownContext() error {
 func (fs MapRFSObjects) checkListPermissions(ctx context.Context, bucket, prefix, delimiter string) error {
 	var bucketPath = bucket
 	if prefix != "" {
-		bucketPath += delimiter + prefix
+		bucketPath += "/" + prefix
 	}
 
 	path, err := fs.getBucketDir(ctx, bucketPath)
@@ -266,6 +267,37 @@ func (fs MapRFSObjects) checkListPermissions(ctx context.Context, bucket, prefix
 		return err
 	}
 
+	if delimiter != "" {
+		return checkPermissions(path, bucket, prefix)
+	} else {
+		return checkRecursivePermissions(path, bucket, prefix)
+	}
+}
+
+func checkRecursivePermissions(path, bucket, prefix string) error {
+	if err := checkPermissions(path, bucket, prefix); err != nil {
+		return err
+	}
+
+	files, err := ioutil.ReadDir(path)
+	if err != nil {
+		return err
+	}
+
+	for _, f := range files {
+		if f.IsDir() {
+			newPath := path + "/" + f.Name()
+			err := checkRecursivePermissions(newPath, bucket, prefix)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	return nil
+}
+
+func checkPermissions(path, bucket, prefix string) error {
 	f, err := os.Open(path)
 	if err != nil && !os.IsNotExist(err) {
 		return PrefixAccessDenied{
@@ -275,5 +307,6 @@ func (fs MapRFSObjects) checkListPermissions(ctx context.Context, bucket, prefix
 	}
 	f.Close()
 
+	// Ignoring other errors here to make default handling work
 	return nil
 }
