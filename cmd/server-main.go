@@ -245,6 +245,11 @@ func processMapRFSConfig(ctx *cli.Context) error {
 		if err != nil && ctx.Bool("check-config") {
 			fmt.Println(msg)
 		}
+
+		if err == nil {
+			err = globalMaprMinioCfg.setLdapEnvsIfNecessary()
+		}
+
 		logger.FatalIf(err, msg)
 		return err
 	} else {
