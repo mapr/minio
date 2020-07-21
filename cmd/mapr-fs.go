@@ -2,12 +2,10 @@ package cmd
 
 import (
 	"context"
-	"errors"
 	"github.com/minio/minio/cmd/logger"
-	"io/ioutil"
 	"net/http"
 	"os"
-	"runtime"
+	"path"
 	"strconv"
 	"syscall"
 )
@@ -72,7 +70,7 @@ func (fs MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker,
 	// since tree walk in fs-v1 is done in the context of another thread.
 	// TODO: either rewrite fs-v1.ListObjects
 	// or update treeWalk to use fs impersonation.
-	if err := fs.checkListPermissions(ctx, bucket, prefix, delimiter); err != nil {
+	if err := fs.checkReadListPermissions(ctx, bucket, prefix, delimiter); err != nil {
 		return result, err
 	}
 
@@ -89,7 +87,7 @@ func (fs MapRFSObjects) ListObjectsV2(ctx context.Context, bucket, prefix, conti
 	// since tree walk in fs-v1 is done in the context of another thread.
 	// TODO: either rewrite fs-v1.ListObjects
 	// or update treeWalk to use fs impersonation.
-	if err := fs.checkListPermissions(ctx, bucket, prefix, delimiter); err != nil {
+	if err := fs.checkReadListPermissions(ctx, bucket, prefix, delimiter); err != nil {
 		return result, err
 	}
 
@@ -134,6 +132,10 @@ func (fs MapRFSObjects) DeleteObjects(ctx context.Context, bucket string, object
 }
 
 func (fs MapRFSObjects) PutObject(ctx context.Context, bucket, object string, data *PutObjReader, opts ObjectOptions) (objInfo ObjectInfo, err error) {
+	if err := fs.checkWritePermissions(ctx, bucket, object, opts); err != nil {
+		return objInfo, err
+	}
+
 	info, err := fs.FSObjects.PutObject(ctx, bucket, object, data, opts)
 
 	if err != nil && os.IsPermission(err) {
@@ -157,155 +159,124 @@ func (fs *MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, d
 	return info, err
 }
 
-func RawSetfsuid(fsuid int) (prevFsuid int) {
-	r1, _, _ := syscall.RawSyscall(syscall.SYS_SETFSUID, uintptr(fsuid), 0, 0)
-	return int(r1)
-}
-
-func RawSetfsgid(fsgid int) (prevFsgid int) {
-	r1, _, _ := syscall.RawSyscall(syscall.SYS_SETFSGID, uintptr(fsgid), 0, 0)
-	return int(r1)
-}
-
-func SetStringfsuid(fsuid string) (err error) {
-	if fsuid == "" {
-		return nil
+func (fs *MapRFSObjects) NewMultipartUpload(ctx context.Context, bucket, object string,
+	opts ObjectOptions) (uploadID string, err error) {
+	if err := fs.checkWritePermissions(ctx, bucket, object, opts); err != nil {
+		return uploadID, err
 	}
 
-	uid, err := strconv.Atoi(fsuid)
-	if err != nil {
+	return fs.FSObjects.NewMultipartUpload(ctx, bucket, object, opts)
+}
+
+func (fs *MapRFSObjects) CopyObjectPart(ctx context.Context, srcBucket, srcObject, destBucket, destObject string,
+	uploadID string, partID int, startOffset int64, length int64, srcInfo ObjectInfo, srcOpts,
+	dstOpts ObjectOptions) (info PartInfo, err error) {
+	if err := fs.checkWritePermissions(ctx, destBucket, destObject, dstOpts); err != nil {
+		return info, err
+	}
+
+	if err := fs.checkFileReadPermissions(ctx, srcBucket, srcObject, srcOpts); err != nil {
+		return info, err
+	}
+
+	info, err = fs.FSObjects.CopyObjectPart(ctx, srcBucket, srcObject, destBucket, destObject, uploadID, partID, startOffset,
+		length, srcInfo, srcOpts, dstOpts)
+	if err != nil && os.IsPermission(err) {
+		return info, errAccessDenied
+	}
+
+	return info, err
+}
+
+func (fs *MapRFSObjects) PutObjectPart(ctx context.Context, bucket, object, uploadID string, partID int,
+	data *PutObjReader, opts ObjectOptions) (info PartInfo, err error) {
+	if err := fs.checkWritePermissions(ctx, bucket, object, opts); err != nil {
+		return info, err
+	}
+
+	return fs.FSObjects.PutObjectPart(ctx, bucket, object, uploadID, partID, data, opts)
+}
+
+func (fs *MapRFSObjects) ListObjectParts(ctx context.Context, bucket, object, uploadID string, partNumberMarker int,
+	maxParts int, opts ObjectOptions) (result ListPartsInfo, err error) {
+	if err := fs.checkWritePermissions(ctx, bucket, object, opts); err != nil {
+		return result, err
+	}
+
+	return fs.FSObjects.ListObjectParts(ctx, bucket, object, uploadID, partNumberMarker, maxParts, opts)
+}
+
+func (fs *MapRFSObjects) AbortMultipartUpload(ctx context.Context, bucket, object, uploadID string, opts ObjectOptions) error {
+	if err := fs.checkWritePermissions(ctx, bucket, object, ObjectOptions{}); err != nil {
 		return err
 	}
 
-	return Setfsuid(uid)
+	return fs.FSObjects.AbortMultipartUpload(ctx, bucket, object, uploadID, opts)
 }
 
-func SetStringfsgid(fsgid string) (err error) {
-	if fsgid == "" {
-		return nil
+func (fs *MapRFSObjects) CompleteMultipartUpload(ctx context.Context, bucket, object, uploadID string,
+	uploadedParts []CompletePart, opts ObjectOptions) (objInfo ObjectInfo, err error) {
+	if err := fs.checkWritePermissions(ctx, bucket, object, opts); err != nil {
+		return objInfo, err
 	}
 
-	gid, err := strconv.Atoi(fsgid)
-	if err != nil {
-		return err
-	}
-
-	return Setfsgid(gid)
+	return fs.FSObjects.CompleteMultipartUpload(ctx, bucket, object, uploadID, uploadedParts, opts)
 }
 
-func Setfsuid(fsuid int) (err error) {
-	logger.Info("Setting UID to " + strconv.Itoa(fsuid))
-	RawSetfsuid(fsuid)
-	if RawSetfsuid(-1) != fsuid {
-		return errors.New("Failed to perform FS impersonation.")
-	}
+func (fs MapRFSObjects) checkReadListPermissions(ctx context.Context, bucket, prefix, delimiter string) error {
+	var bucketPath = path.Join(bucket, prefix)
 
-	logger.Info("UID is " + strconv.Itoa(fsuid))
+	fullPath, err := fs.getBucketDir(ctx, bucketPath)
 
-	return nil
-}
-
-func Setfsgid(fsgid int) (err error) {
-	logger.Info("Setting GID to " + strconv.Itoa(fsgid))
-	RawSetfsgid(fsgid)
-	if RawSetfsgid(-1) != fsgid {
-		return errors.New("Failed to perform FS impersonation")
-	}
-
-	logger.Info("GID is " + strconv.Itoa(fsgid))
-
-	return nil
-}
-
-func PrepareContext(ctx context.Context) error {
-	reqInfo := logger.GetReqInfo(ctx)
-
-	err := PrepareContextUidGid(reqInfo.UID, reqInfo.GID)
-	if err != nil {
-		logger.LogIf(ctx, err)
-	}
-
-	return err
-}
-
-func PrepareContextUidGid(uid, gid string) error {
-	runtime.LockOSThread()
-
-	if err := SetStringfsuid(uid); err != nil {
-		return err
-	}
-
-	if err := SetStringfsgid(gid); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func ShutdownContext() error {
-	defer runtime.UnlockOSThread()
-
-	if err := Setfsuid(syscall.Geteuid()); err != nil {
-		return err
-	}
-
-	if err := Setfsgid(syscall.Getegid()); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (fs MapRFSObjects) checkListPermissions(ctx context.Context, bucket, prefix, delimiter string) error {
-	var bucketPath = bucket
-	if prefix != "" {
-		bucketPath += "/" + prefix
-	}
-
-	path, err := fs.getBucketDir(ctx, bucketPath)
 	if err != nil {
 		return err
 	}
 
 	if delimiter != "" {
-		return checkPermissions(path, bucket, prefix)
+		return checkReadPermissions(fullPath, bucket, prefix)
 	} else {
-		return checkRecursivePermissions(path, bucket, prefix)
+		return checkReadRecursivePermissions(fullPath, bucket, prefix)
 	}
 }
 
-func checkRecursivePermissions(path, bucket, prefix string) error {
-	if err := checkPermissions(path, bucket, prefix); err != nil {
-		return err
-	}
+func (fs MapRFSObjects) checkWritePermissions(ctx context.Context, bucket, object string, opts ObjectOptions) error {
+	uid, gid := getUidGid(ctx, opts)
 
-	files, err := ioutil.ReadDir(path)
+	pathToObject, err := fs.getBucketDir(ctx, path.Join(bucket, object))
 	if err != nil {
 		return err
 	}
 
-	for _, f := range files {
-		if f.IsDir() {
-			newPath := path + "/" + f.Name()
-			err := checkRecursivePermissions(newPath, bucket, prefix)
-			if err != nil {
-				return err
-			}
+	pathToCheck := path.Dir(pathToObject)
+	for _, err := os.Stat(pathToCheck); os.IsNotExist(err); _, err = os.Stat(pathToCheck) {
+		pathToCheck = path.Dir(pathToCheck)
+	}
+
+	if err := access(pathToCheck, uid, gid, W_OK); err != nil && os.IsPermission(err) {
+		return PrefixAccessDenied{
+			Bucket: bucket,
+			Object: object,
 		}
 	}
 
+	// Ignoring other errors here to make default handling work
 	return nil
 }
 
-func checkPermissions(path, bucket, prefix string) error {
-	f, err := os.Open(path)
-	if err != nil && !os.IsNotExist(err) {
+func (fs MapRFSObjects) checkFileReadPermissions(ctx context.Context, bucket, object string, opts ObjectOptions) error {
+	uid, gid := getUidGid(ctx, opts)
+
+	pathToObject, err := fs.getBucketDir(ctx, path.Join(bucket, object))
+	if err != nil {
+		return err
+	}
+
+	if err := access(pathToObject, uid, gid, R_OK); err != nil && os.IsPermission(err) {
 		return PrefixAccessDenied{
 			Bucket: bucket,
-			Object: prefix,
+			Object: object,
 		}
 	}
-	f.Close()
 
 	// Ignoring other errors here to make default handling work
 	return nil
