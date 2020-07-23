@@ -7,10 +7,11 @@ WARDEN_CONF=$OBJECTSTORE_HOME/conf/warden.objectstore.conf
 MINIO_BINARY=$OBJECTSTORE_HOME/bin/minio
 MAPR_S3_CONFIG=$OBJECTSTORE_HOME/conf/minio.json
 MAPR_CLUSTERS_CONF=$MAPR_HOME/conf/mapr-clusters.conf
+SSL_SERVER_CONFIG_FILE="${MAPR_HOME}/conf/ssl-server.xml"
+SSL_KEYSTORE_PASSWORD_PROP="ssl.server.keystore.password"
 manageSSLKeys=$MAPR_HOME/server/manageSSLKeys.sh
 sslKeyStore=${INSTALL_DIR}/conf/ssl_keystore
-manageSSL="${MAPR_HOME}/server/manageSSLKeys.sh"
-storePass="$(fgrep storePass $manageSSL | head -1 |cut -d'=' -f2 )"
+storePass=`sed -n '/'${SSL_KEYSTORE_PASSWORD_PROP}'/{:a;N;/<\/value>/!ba {s|.*<value>\(.*\)</value>|\1|p}}' "$SSL_SERVER_CONFIG_FILE"`
 storeFormat=JKS
 storeFormatPKCS12=pkcs12
 isSecure=`cat /opt/mapr/conf/mapr-clusters.conf | sed 's/.*\(secure=\)\(true\|false\).*/\2/'`
