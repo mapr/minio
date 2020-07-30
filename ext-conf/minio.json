@@ -6,6 +6,7 @@
     "oldAccessKey": "",
     "oldSecretKey": "",
     "port": "9000",
+    "domain": "",
     "logPath": "/opt/mapr/objectstore-client/objectstore-client-2.0.0/logs/minio.log",
     "logLevel": 4,
     "ldap": {

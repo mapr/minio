@@ -247,7 +247,7 @@ func processMapRFSConfig(ctx *cli.Context) error {
 		}
 
 		if err == nil {
-			err = globalMaprMinioCfg.setLdapEnvsIfNecessary()
+			err = globalMaprMinioCfg.setEnvsIfNecessary()
 		}
 
 		logger.FatalIf(err, msg)

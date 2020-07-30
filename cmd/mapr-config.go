@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	configEnv "github.com/minio/minio/cmd/config"
 	ldap2 "github.com/minio/minio/cmd/config/identity/ldap"
 	"github.com/minio/minio/cmd/logger"
 	"io/ioutil"
@@ -18,6 +19,7 @@ type MapRMinioConfig struct {
 	OldAccessKey   string   `json:"oldAccessKey",omitempty`   /// Old Minio accessKey
 	OldSecretKey   string   `json:"oldSecretKey",omitempty`   /// Old Minio secretKey
 	DeploymentMode string   `json:"deploymentMode",omitempty` /// Security scenario to use
+	Domain         string   `json:"domain",omitempty`         /// Domain for virtual-hosted–style
 	LogPath        string   `json:"logPath",omitempty`        /// Path to the log file
 	LogLevel       int      `json:"logLevel",omitempty`       /// Logger verbosity
 	Ldap           MapRLdap `json:"ldap",omitempty`           /// MapR's LDAP config
@@ -50,7 +52,11 @@ func parseMapRMinioConfig(maprfsConfigPath string) (config MapRMinioConfig, err 
 	return config, err
 }
 
-func (config MapRMinioConfig) setLdapEnvsIfNecessary() error {
+func (config MapRMinioConfig) setEnvsIfNecessary() error {
+	if err := setEnvIfNecessary(configEnv.EnvDomain, config.Domain); err != nil {
+		return err
+	}
+
 	ldap := config.Ldap
 
 	if err := setEnvIfNecessary(ldap2.EnvServerAddr, ldap.ServerAddr); err != nil {
