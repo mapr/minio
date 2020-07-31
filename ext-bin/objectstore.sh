@@ -24,6 +24,13 @@ function checkSecurityScenario() {
     echo $configMode > $fsPath/$DEPLOYMENT_TYPE_FILE
 }
 
+function tweakPermissions() {
+    path=$1
+    if [[ "$(id -u)" == "0" ]] && [[ -f $path ]]; then
+        chown --reference=$MINIO_DIR/bin/minio "$path"
+    fi
+}
+
 if [ ! -d $MINIO_DIR ]
 then
    echo "Failed to start objectstore"
@@ -37,12 +44,12 @@ case $1 in
         then
             logFile=$MINIO_LOG_FILE
         fi
+
         logPath=$(dirname "${logFile}")
 
-        if [ ! -d $logPath ]
-        then
-            mkdir $logPath
-        fi
+        mkdir -p $logPath
+        touch $logFile
+        tweakPermissions $logFile
 
         #Setting port
         if [ -f "$MAPR_HOME/conf/conf.d/warden.objectstore.conf" ]; then
@@ -65,6 +72,7 @@ case $1 in
         echo "[$(date -R)] Running minio" >> "$logFile"
             nohup $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --certs-dir $MAPR_CERTIFICATE_DIR --address :$port >> "$logFile" 2>&1 & echo $! > $MINIO_PID_FILE
 
+        tweakPermissions $MINIO_PID_FILE
         ;;
     stop)
         if [ -f $MINIO_PID_FILE ]
