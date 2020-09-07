@@ -154,7 +154,7 @@ function setupCertificate() {
         fi
     fi
     mkdir -p $OBJECTSTORE_HOME/conf/certs
-    openssl x509 -in $MAPR_HOME/conf/ssl_truststore.pem -out $OBJECTSTORE_HOME/conf/certs/public.crt
+    openssl $storeFormatPKCS12 -in $MAPR_HOME/conf/ssl_keystore.p12 -passin pass:$storePass -clcerts -nokeys -out $OBJECTSTORE_HOME/conf/certs/public.crt
     extractPemKey $MAPR_HOME/conf/ssl_keystore $OBJECTSTORE_HOME/conf/certs/private.key
 }
 
