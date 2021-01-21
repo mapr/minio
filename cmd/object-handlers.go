@@ -750,10 +750,15 @@ func (api objectAPIHandlers) HeadObjectHandler(w http.ResponseWriter, r *http.Re
 func getCpObjMetadataFromHeader(ctx context.Context, r *http.Request, userMeta map[string]string) (map[string]string, error) {
 	// Make a copy of the supplied metadata to avoid
 	// to change the original one.
-	defaultMeta := make(map[string]string, len(userMeta))
+	defaultMeta := make(map[string]string, len(userMeta)+2)
 	for k, v := range userMeta {
 		defaultMeta[k] = v
 	}
+
+	// Adding info about credentials
+	cred := getReqAccessCred(r, "")
+	defaultMeta["uid"] = cred.UID
+	defaultMeta["gid"] = cred.GID
 
 	// remove SSE Headers from source info
 	crypto.RemoveSSEHeaders(defaultMeta)

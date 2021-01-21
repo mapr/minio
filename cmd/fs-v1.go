@@ -691,6 +691,7 @@ func (fs *FSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, dstBu
 		return ObjectInfo{}, err
 	}
 
+	ShutdownContext()
 	objInfo, err := fs.putObject(ctx, dstBucket, dstObject, srcInfo.PutObjReader, ObjectOptions{ServerSideEncryption: dstOpts.ServerSideEncryption, UserDefined: srcInfo.UserDefined})
 	if err != nil {
 		return oi, toObjectErr(err, dstBucket, dstObject)

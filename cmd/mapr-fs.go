@@ -146,6 +146,10 @@ func (fs MapRFSObjects) PutObject(ctx context.Context, bucket, object string, da
 }
 
 func (fs *MapRFSObjects) CopyObject(ctx context.Context, srcBucket, srcObject, dstBucket, dstObject string, srcInfo ObjectInfo, srcOpts, dstOpts ObjectOptions) (oi ObjectInfo, e error) {
+	if err := fs.checkWritePermissions(ctx, dstBucket, dstObject, dstOpts); err != nil {
+		return oi, err
+	}
+
 	if err := PrepareContext(ctx); err != nil {
 		return oi, err
 	}
