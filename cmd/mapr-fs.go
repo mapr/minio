@@ -70,7 +70,7 @@ func (fs MapRFSObjects) ListObjects(ctx context.Context, bucket, prefix, marker,
 	// since tree walk in fs-v1 is done in the context of another thread.
 	// TODO: either rewrite fs-v1.ListObjects
 	// or update treeWalk to use fs impersonation.
-	if err := fs.checkReadListPermissions(ctx, bucket, prefix, delimiter); err != nil {
+	if err := fs.checkReadListPermissions(ctx, bucket, prefix, delimiter); err != nil && bucket != minioMetaBucket {
 		return result, err
 	}
 
