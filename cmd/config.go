@@ -230,5 +230,10 @@ func initConfig(objAPI ObjectLayer) error {
 		return err
 	}
 
+	// Migrating Objectstore config from 2.0.0 to 2.1.0
+	if err := migrateMaprStreamsConfig(objAPI); err != nil {
+		return err
+	}
+
 	return loadConfig(objAPI)
 }

@@ -2785,3 +2785,42 @@ func migrateMinioSysConfigToKV(objAPI ObjectLayer) error {
 		configFile, "33")
 	return nil
 }
+
+// Migrating from Objectstore 2.0.0 to 2.1.0 config
+func migrateMaprStreamsConfig(objAPI ObjectLayer) error {
+	cfg, err := readServerConfig(GlobalContext, objAPI)
+	if err != nil {
+		return err
+	}
+
+	kafka, streams := separateMapRStreamsNotifications(cfg[config.NotifyKafkaSubSys])
+	cfg[config.NotifyKafkaSubSys] = kafka
+
+	if err = saveServerConfig(GlobalContext, objAPI, cfg); err != nil {
+		return err
+	}
+
+	if len(streams) > 0 {
+		logger.Info("Configuration file migrated from version '%s' to '%s' successfully.", "2.0.0", "2.1.0")
+	}
+
+	return nil
+}
+
+func separateMapRStreamsNotifications(kafkaKVS map[string]config.KVS) (map[string]config.KVS, map[string]config.KVS) {
+	kafkaConfig := make(map[string]config.KVS)
+	maprStreams := make(map[string]config.KVS)
+
+	for k, kv := range kafkaKVS {
+		kafkaBrokers := kv.Get(target.KafkaBrokers)
+		topic := kv.Get(target.KafkaTopic)
+
+		if len(kafkaBrokers) != 0 || len(topic) == 0 {
+			kafkaConfig[k] = kv
+		} else {
+			maprStreams[k] = kv
+		}
+	}
+
+	return kafkaConfig, maprStreams
+}
