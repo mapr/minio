@@ -270,7 +270,7 @@ func newXLStorage(ep Endpoint) (*xlStorage, error) {
 		globalSync:           env.Get(config.EnvFSOSync, config.EnableOff) == config.EnableOn,
 		ctx:                  GlobalContext,
 		rootDisk:             rootDisk,
-		readODirectSupported: true,
+		readODirectSupported: globalMode == UNKNOWN,
 		poolIndex:            -1,
 		setIndex:             -1,
 		diskIndex:            -1,

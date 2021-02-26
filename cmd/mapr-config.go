@@ -13,16 +13,17 @@ import (
 /// This structure represetns separate configuration file
 /// It was made separate to avoid clashes with Minio's config versioning
 type MapRMinioConfig struct {
-	FsPath         string   `json:"fsPath",omitempty`         /// Path to the Minio data root directory
-	AccessKey      string   `json:"accessKey",omitempty`      /// Minio accessKey
-	SecretKey      string   `json:"secretKey",omitempty`      /// Minio secretKey
-	OldAccessKey   string   `json:"oldAccessKey",omitempty`   /// Old Minio accessKey
-	OldSecretKey   string   `json:"oldSecretKey",omitempty`   /// Old Minio secretKey
-	DeploymentMode string   `json:"deploymentMode",omitempty` /// Security scenario to use
-	Domain         string   `json:"domain",omitempty`         /// Domain for virtual-hosted–style
-	LogPath        string   `json:"logPath",omitempty`        /// Path to the log file
-	LogLevel       int      `json:"logLevel",omitempty`       /// Logger verbosity
-	Ldap           MapRLdap `json:"ldap",omitempty`           /// MapR's LDAP config
+	FsPath           string   `json:"fsPath",omitempty`           /// Path to the Minio data root directory
+	DistributedHosts string   `json:"distributedHosts",omitempty` /// Hosts with path for distributed mode
+	AccessKey        string   `json:"accessKey",omitempty`        /// Minio accessKey
+	SecretKey        string   `json:"secretKey",omitempty`        /// Minio secretKey
+	OldAccessKey     string   `json:"oldAccessKey",omitempty`     /// Old Minio accessKey
+	OldSecretKey     string   `json:"oldSecretKey",omitempty`     /// Old Minio secretKey
+	DeploymentMode   string   `json:"deploymentMode",omitempty`   /// Security scenario to use
+	Domain           string   `json:"domain",omitempty`           /// Domain for virtual-hosted–style
+	LogPath          string   `json:"logPath",omitempty`          /// Path to the log file
+	LogLevel         int      `json:"logLevel",omitempty`         /// Logger verbosity
+	Ldap             MapRLdap `json:"ldap",omitempty`             /// MapR's LDAP config
 }
 
 type MapRLdap struct {

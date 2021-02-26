@@ -61,6 +61,12 @@ case $1 in
 
         mountPath=$(cat $MAPR_S3_CONFIG | grep 'fsPath' | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
 
+        # Switching to distributed mode mount path
+        distributedHosts=$(cat $MAPR_S3_CONFIG | grep 'distributedHosts' | sed -e "s/\s*\"distributedHosts\"\s*:\s*\"\(.*\)\",/\1/g")
+        if [ -n "${distributedHosts}" ]; then
+          mountPath=$distributedHosts
+        fi
+
         echo "[$(date -R)] Minio pre-flight check" >> "$logFile"
         checkSecurityScenario >> "$logFile" 2>&1
         $MINIO_DIR/bin/minio server $mountPath -M $MAPR_S3_CONFIG --certs-dir $MAPR_CERTIFICATE_DIR --address :$port --check-config

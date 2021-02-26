@@ -22,6 +22,7 @@ import (
 	"crypto/md5"
 	"encoding/hex"
 	"fmt"
+	"github.com/minio/minio/pkg/dsync"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -85,6 +86,9 @@ type FSObjects struct {
 
 	// To manage the appendRoutine go-routines
 	nsMutex *nsLockMap
+
+	// List of rest client objects, one per lock server.
+	GetLockers func() ([]dsync.NetLocker, string)
 }
 
 // Represents the background append file.
@@ -190,7 +194,7 @@ func NewFSObjectLayer(fsPath string) (ObjectLayer, error) {
 // NewNSLock - initialize a new namespace RWLocker instance.
 func (fs *FSObjects) NewNSLock(bucket string, objects ...string) RWLocker {
 	// lockers are explicitly 'nil' for FS mode since there are only local lockers
-	return fs.nsMutex.NewNSLock(nil, bucket, objects...)
+	return fs.nsMutex.NewNSLock(fs.GetLockers, bucket, objects...)
 }
 
 // SetDriveCounts no-op

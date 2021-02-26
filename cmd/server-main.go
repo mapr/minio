@@ -21,6 +21,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"fmt"
+	"github.com/minio/minio/pkg/madmin"
 	"math/rand"
 	"net"
 	"os"
@@ -40,7 +41,6 @@ import (
 	"github.com/minio/minio/pkg/certs"
 	"github.com/minio/minio/pkg/color"
 	"github.com/minio/minio/pkg/env"
-	"github.com/minio/minio/pkg/madmin"
 	"github.com/sirupsen/logrus"
 	"github.com/minio/minio/pkg/sync/errgroup"
 )
@@ -225,15 +225,23 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	logger.SetLevel(logrus.Level(logLevel - 1))
 
 	mode := StringToMode(modeString)
+	checkConfig := ctx.Bool("check-config")
 	if mode == UNKNOWN {
 		msg := "Unsupported deployment mode specified: " + modeString
-		if ctx.Bool("check-config") {
-			fmt.Println(msg)
-		}
-		logger.FatalIf(errInvalidArgument, msg)
+		logWithCheckConfig(checkConfig, msg)
+	} else if mode == FS && globalIsErasure {
+		msg := "Distributed mode does not support FS mode for file access, only S3 mode"
+		logWithCheckConfig(checkConfig, msg)
 	} else {
 		globalMode = mode
 	}
+}
+
+func logWithCheckConfig(checkConfig bool, msg string) {
+	if checkConfig {
+		fmt.Println(msg)
+	}
+	logger.FatalIf(errInvalidArgument, msg)
 }
 
 func processMapRFSConfig(ctx *cli.Context) error {
@@ -423,7 +431,7 @@ func initAllSubsystems(ctx context.Context, newObject ObjectLayer) (err error) {
 		return fmt.Errorf("Unable to list buckets to heal: %w", err)
 	}
 
-	if globalIsErasure {
+	if globalIsErasure && globalMode == UNKNOWN {
 		if len(buckets) > 0 {
 			if len(buckets) == 1 {
 				logger.Info(fmt.Sprintf("Verifying if %d bucket is consistent across drives...", len(buckets)))
@@ -660,5 +668,5 @@ func newObjectLayer(ctx context.Context, endpointServerPools EndpointServerPools
 		}
 	}
 
-	return newErasureServerPools(ctx, endpointServerPools)
+	return NewMapRServerPools(endpointServerPools)
 }

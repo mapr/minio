@@ -39,9 +39,10 @@ type endpointSet struct {
 	setIndexes  [][]uint64 // All the sets.
 }
 
+//
 // Supported set sizes this is used to find the optimal
 // single set size.
-var setSizes = []uint64{4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
+var setSizes = []uint64{2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16}
 
 // getDivisibleSize - returns a greatest common divisor of
 // all the ellipses sizes.
