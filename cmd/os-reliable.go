@@ -18,6 +18,7 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path"
 	"strconv"
@@ -266,7 +267,7 @@ func reliableRenameWithUidGid(srcFilePath, dstFilePath, uid, gid string) (err er
 
 	for i := 0; i < 2; i++ {
 		// After a successful parent directory create attempt a renameAll.
-		if err = os.Rename(srcFilePath, dstFilePath); err != nil {
+		if err = renameOrCopyFile(srcFilePath, dstFilePath); err != nil {
 			// Retry only for the first retryable error.
 			if osIsNotExist(err) {
 				continue
@@ -276,5 +277,31 @@ func reliableRenameWithUidGid(srcFilePath, dstFilePath, uid, gid string) (err er
 		}
 		break
 	}
+	return err
+}
+
+func renameOrCopyFile(src, dst string) error {
+	err := os.Rename(src, dst)
+
+	// If another volume, than copying file instead of renaming
+	if err != nil && isSysErrCrossDevice(err) {
+		source, err := os.Open(src)
+		if err != nil {
+			return err
+		}
+		defer source.Close()
+
+		destination, err := os.Create(dst)
+		if err != nil {
+			return err
+		}
+		defer destination.Close()
+		_, err = io.Copy(destination, source)
+
+		err = os.Remove(src)
+
+		return err
+	}
+
 	return err
 }
