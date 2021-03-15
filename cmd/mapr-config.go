@@ -14,6 +14,7 @@ import (
 /// It was made separate to avoid clashes with Minio's config versioning
 type MapRMinioConfig struct {
 	FsPath           string   `json:"fsPath",omitempty`           /// Path to the Minio data root directory
+	Port             string   `json:"port",omitempty`             /// Port for server
 	DistributedHosts string   `json:"distributedHosts",omitempty` /// Hosts with path for distributed mode
 	AccessKey        string   `json:"accessKey",omitempty`        /// Minio accessKey
 	SecretKey        string   `json:"secretKey",omitempty`        /// Minio secretKey

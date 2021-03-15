@@ -26,8 +26,12 @@ function checkSecurityScenario() {
 
 function tweakPermissions() {
     path=$1
-    if [[ "$(id -u)" == "0" ]] && [[ -f $path ]]; then
+    if [[ "$(id -u)" == "0" ]]; then
+      if [[ -f $path ]]; then
         chown --reference=$MINIO_DIR/bin/minio "$path"
+      elif [[ -d $path ]]; then
+        chown -R --reference=$MINIO_DIR/bin/minio "$path"
+      fi
     fi
 }
 
@@ -48,6 +52,7 @@ case $1 in
         logPath=$(dirname "${logFile}")
 
         mkdir -p $logPath
+        tweakPermissions $logPath
         touch $logFile
         tweakPermissions $logFile
 

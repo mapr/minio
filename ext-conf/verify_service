@@ -1,0 +1,6 @@
+#!/bin/bash
+
+version_file="/opt/mapr/objectstore-client/objectstoreversion"
+version=$(cat $version_file)
+verifier_path="/opt/mapr/objectstore-client/objectstore-client-${version}/util/verifier"
+"$verifier_path"
