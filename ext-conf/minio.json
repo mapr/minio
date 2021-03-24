@@ -1,4 +1,5 @@
 {
+    "version": "2",
     "fsPath": "/mapr/${cluster}/apps/s3/${node}",
     "deploymentMode": "S3",
     "distributedHosts": "",
@@ -13,11 +14,12 @@
     "ldap": {
         "serverAddr": "",
         "usernameFormat": "",
-        "usernameSearchFilter": "",
+        "userDNSearchBaseDN": "",
+        "userDNSearchFilter": "",
         "groupSearchFilter": "",
         "groupSearchBaseDn": "",
-        "usernameSearchBaseDn": "",
-        "groupNameAttribute": "",
+        "lookUpBindDN": "",
+        "lookUpBindPassword": "",
         "stsExpiry": "",
         "tlsSkipVerify": "",
         "serverStartTls": "",
