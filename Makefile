@@ -1,6 +1,7 @@
 PWD := $(shell pwd)
 GOPATH := $(shell go env GOPATH)
-LDFLAGS := $(shell go run buildscripts/gen-ldflags.go)
+LDFLAGS := $(shell go run buildscripts/gen-ldflags.go "${VERSION}")
+LDFLAGS_LOCAL := $(shell go run buildscripts/gen-ldflags.go)
 
 GOARCH := $(shell go env GOARCH)
 GOOS := $(shell go env GOOS)
@@ -61,10 +62,20 @@ build: checks
 	@echo "Building minio binary to './minio'"
 	@GO111MODULE=on CGO_ENABLED=0 go build -tags kqueue -trimpath --ldflags "$(LDFLAGS)" -o $(PWD)/minio 1>/dev/null
 
+# Builds minio with MapR Kafka libraries
+build-mapr: checks
+	@echo "Building minio binary to './minio'"
+	@CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -Wl,-rpath=/opt/mapr/lib -lMapRClient_c" go build --ldflags "$(LDFLAGS)"
+
 # Builds minio with local MapR Kafka libraries
 build-local: checks
 	@echo "Building minio binary to './minio'"
-	@GO111MODULE=on GOPROXY=direct GOSUMDB=off CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -Wl,-rpath=/opt/mapr/lib -lMapRClient_c" go build -gcflags \"all=-N\"
+	@GO111MODULE=on GOPROXY=direct GOSUMDB=off CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -Wl,-rpath=/opt/mapr/lib -lMapRClient_c" go build --ldflags "$(LDFLAGS_LOCAL)" -gcflags \"all=-N\"
+
+# Builds verifier
+build-verifier:
+	@echo "Building verifier binary to './verifier'"
+	@go build verifier-service/verifier.go
 
 hotfix-vars:
 	$(eval LDFLAGS := $(shell MINIO_RELEASE="RELEASE" MINIO_HOTFIX="hotfix.$(shell git rev-parse --short HEAD)" go run buildscripts/gen-ldflags.go $(shell git describe --tags --abbrev=0 | \
