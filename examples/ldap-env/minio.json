@@ -1,0 +1,28 @@
+{
+	"version": "2",
+	"fsPath": "/mapr/${cluster}/apps/s3/${node}",
+	"port": "9000",
+	"distributedHosts": "",
+	"accessKey": "minioadmin",
+	"secretKey": "minioadmin",
+	"oldAccessKey": "",
+	"oldSecretKey": "",
+	"deploymentMode": "S3",
+	"domain": "",
+	"logPath": "",
+	"logLevel": 4,
+	"ldap": {
+		"serverAddr": "localhost:389",
+		"usernameFormat": "cn=%s,dc=mapr,dc=local",
+		"userDNSearchBaseDN": "",
+		"userDNSearchFilter": "(cn=%s)",
+		"groupSearchFilter": "(&(objectclass=group)(member=%s))",
+		"groupSearchBaseDn": "dc=mapr,dc=local",
+		"lookUpBindDN": "",
+		"lookUpBindPassword": "",
+		"stsExpiry": "60h",
+		"tlsSkipVerify": "on",
+		"serverStartTls": "",
+		"severInsecure": "on"
+	}
+}
