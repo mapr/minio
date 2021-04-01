@@ -282,7 +282,7 @@ func checkServerMC(mcPath, aliasName string) (err error) {
 		serverMap := server.(map[string]interface{})
 		state := serverMap["state"]
 		endpoint := serverMap["endpoint"]
-		if state != "ok" {
+		if state != "online" {
 			return errors.New(fmt.Sprintf("Wrong state %s for server %s", state, endpoint))
 		}
 		logger.Info("Server ", endpoint, " OK")
