@@ -56,8 +56,8 @@ pipeline {
             stage("Checkout") {
               steps {
                 script {
-                  checkout scm
                   checkout([$class: 'GitSCM', branches: [[name: "*/${env.BRANCH_NAME}"]], extensions: [], userRemoteConfigs: [[credentialsId: 'mapr-github', url: 'https://github.com/mapr/private-mc']]])
+                  checkout scm
                 }
               }
             }
@@ -124,8 +124,8 @@ pipeline {
             stage("Checkout") {
               steps {
                 script {
-                  checkout scm
                   checkout([$class: 'GitSCM', branches: [[name: "*/${env.BRANCH_NAME}"]], extensions: [], userRemoteConfigs: [[credentialsId: 'mapr-github', url: 'https://github.com/mapr/private-mc']]])
+                  checkout scm
                 }
               }
             }
@@ -225,8 +225,6 @@ pipeline {
                       -v ${WORKSPACE}/settings.xml:/root/.m2/settings.xml:ro \
                       -v /root/.m2/repository:/root/.m2/repository:rw") {
                         sh """
-                        ls ; \
-                        sleep 2500 ; \
                         cd devops/whitesource/ ; \
                         curl -LJO https://github.com/whitesource/unified-agent-distribution/releases/latest/download/wss-unified-agent.jar ; \
                         java -jar wss-unified-agent.jar -project ${env.PROJECT} -product ${env.PROJECT} -userKey $wsUserKey -apiKey $wsApiKey -c wss-unified-agent.config -d ../../ ; \
