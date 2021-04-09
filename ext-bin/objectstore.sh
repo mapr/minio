@@ -57,11 +57,13 @@ case $1 in
         tweakPermissions $logFile
 
         #Setting port
+        configPort=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
         if [ -f "$MAPR_HOME/conf/conf.d/warden.objectstore.conf" ]; then
           port=$(cat $MAPR_HOME/conf/conf.d/warden.objectstore.conf | grep 'service.port=' | sed  's/\(service.port=\)//')
-        sed -i  "s/\(.*\"\)\([0-9]\{1,4\}\)\(\"\)/\1$port\3/" $MAPR_S3_CONFIG
+          sed -i "s/\"port\": \"$configPort\"/\"port\": \"$port\"/g" $MAPR_S3_CONFIG
+          sed -i "s/\"port\":\"$configPort\"/\"port\":\"$port\"/g" $MAPR_S3_CONFIG
         else
-          port=$(cat $MAPR_S3_CONFIG | grep 'port' | sed  's/.*\"\([0-9]\{1,5\}\)\".*/\1/')
+          port=$configPort
         fi
 
         mountPath=$(cat $MAPR_S3_CONFIG | grep 'fsPath' | sed -e "s/\s*\"fsPath\"\s*:\s*\"\(.*\)\",/\1/g")
