@@ -114,7 +114,7 @@ To work with LDAP/AD it is necessary to configure LDAP integration for Objectsto
 "stsExpiry": "60h",
 "tlsSkipVerify": "on",
 "serverStartTls": "",
-"seve``rInsecure": "on"
+"serverInsecure": "on"
 }
 ```
 

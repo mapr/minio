@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	configEnv "github.com/minio/minio/cmd/config"
 	ldap2 "github.com/minio/minio/cmd/config/identity/ldap"
@@ -14,19 +15,20 @@ import (
 /// This structure represetns separate configuration file
 /// It was made separate to avoid clashes with Minio's config versioning
 type MapRMinioConfig struct {
-	Version          string   `json:"version",omitempty`          /// Path to the Minio data root directory
-	FsPath           string   `json:"fsPath",omitempty`           /// Path to the Minio data root directory
-	Port             string   `json:"port",omitempty`             /// Port for server
-	DistributedHosts string   `json:"distributedHosts",omitempty` /// Hosts with path for distributed mode
-	AccessKey        string   `json:"accessKey",omitempty`        /// Minio accessKey
-	SecretKey        string   `json:"secretKey",omitempty`        /// Minio secretKey
-	OldAccessKey     string   `json:"oldAccessKey",omitempty`     /// Old Minio accessKey
-	OldSecretKey     string   `json:"oldSecretKey",omitempty`     /// Old Minio secretKey
-	DeploymentMode   string   `json:"deploymentMode",omitempty`   /// Security scenario to use
-	Domain           string   `json:"domain",omitempty`           /// Domain for virtual-hosted–style
-	LogPath          string   `json:"logPath",omitempty`          /// Path to the log file
-	LogLevel         int      `json:"logLevel",omitempty`         /// Logger verbosity
-	Ldap             MapRLdap `json:"ldap",omitempty`             /// MapR's LDAP config
+	Version            string             `json:"version",omitempty`            /// Path to the Minio data root directory
+	FsPath             string             `json:"fsPath",omitempty`             /// Path to the Minio data root directory
+	Port               string             `json:"port",omitempty`               /// Port for server
+	DistributedHosts   string             `json:"distributedHosts",omitempty`   /// Hosts with path for distributed mode
+	AccessKey          string             `json:"accessKey",omitempty`          /// Minio accessKey
+	SecretKey          string             `json:"secretKey",omitempty`          /// Minio secretKey
+	OldAccessKey       string             `json:"oldAccessKey",omitempty`       /// Old Minio accessKey
+	OldSecretKey       string             `json:"oldSecretKey",omitempty`       /// Old Minio secretKey
+	DeploymentMode     string             `json:"deploymentMode",omitempty`     /// Security scenario to use
+	Domain             string             `json:"domain",omitempty`             /// Domain for virtual-hosted–style
+	LogPath            string             `json:"logPath",omitempty`            /// Path to the log file
+	LogLevel           int                `json:"logLevel",omitempty`           /// Logger verbosity
+	InsecureSkipVerify ConvertibleBoolean `json:"insecureSkipVerify",omitempty` /// Skip verify of certificate
+	Ldap               MapRLdap           `json:"ldap",omitempty`               /// MapR's LDAP config
 }
 
 type MapRLdap struct {
@@ -41,7 +43,7 @@ type MapRLdap struct {
 	StsExpiry          string `json:"stsExpiry",omitempty`
 	TlsSkipVerify      string `json:"tlsSkipVerify",omitempty`
 	ServerStartTls     string `json:"serverStartTls",omitempty`
-	SeverInsecure      string `json:"severInsecure",omitempty`
+	ServerInsecure     string `json:"serverInsecure",omitempty`
 }
 
 func parseMapRMinioConfig(maprfsConfigPath string) (config MapRMinioConfig, err error) {
@@ -116,7 +118,7 @@ func (config MapRMinioConfig) setEnvsIfNecessary() error {
 	if err := setEnvIfNecessary(ldap2.EnvTLSSkipVerify, ldap.TlsSkipVerify); err != nil {
 		return err
 	}
-	if err := setEnvIfNecessary(ldap2.EnvServerInsecure, ldap.SeverInsecure); err != nil {
+	if err := setEnvIfNecessary(ldap2.EnvServerInsecure, ldap.ServerInsecure); err != nil {
 		return err
 	}
 	if err := setEnvIfNecessary(ldap2.EnvServerStartTLS, ldap.ServerStartTls); err != nil {
@@ -179,6 +181,7 @@ func migrateConfigToV2(data []byte) (newData []byte, err error) {
 	configString := string(data)
 	configString = strings.ReplaceAll(configString, "\"usernameSearchBaseDn\"", "\"userDNSearchBaseDN\"")
 	configString = strings.ReplaceAll(configString, "\"usernameSearchFilter\"", "\"userDNSearchFilter\"")
+	configString = strings.ReplaceAll(configString, "\"severInsecure\"", "\"serverInsecure\"")
 
 	newConfig := MapRMinioConfig{}
 	err = json.Unmarshal([]byte(configString), &newConfig)
@@ -190,4 +193,18 @@ func migrateConfigToV2(data []byte) (newData []byte, err error) {
 	newConfig.Version = "2"
 
 	return json.Marshal(newConfig)
+}
+
+type ConvertibleBoolean bool
+
+func (bit *ConvertibleBoolean) UnmarshalJSON(data []byte) error {
+	asString := string(data)
+	if asString == "1" || asString == "true" {
+		*bit = true
+	} else if asString == "0" || asString == "false" {
+		*bit = false
+	} else {
+		return errors.New(fmt.Sprintf("Boolean unmarshal error: invalid input %s", asString))
+	}
+	return nil
 }

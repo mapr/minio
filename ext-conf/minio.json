@@ -11,6 +11,7 @@
     "domain": "",
     "logPath": "/opt/mapr/objectstore-client/objectstore-client-2.1.0/logs/minio.log",
     "logLevel": 4,
+    "insecureSkipVerify": false,
     "ldap": {
         "serverAddr": "",
         "usernameFormat": "",
@@ -23,6 +24,6 @@
         "stsExpiry": "",
         "tlsSkipVerify": "",
         "serverStartTls": "",
-        "severInsecure": ""
+        "serverInsecure": ""
     }
 }
