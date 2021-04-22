@@ -49,6 +49,10 @@ func TestMigrateToV2(t *testing.T) {
 		t.Fatal("Invalid version: ", version, "expected", expected)
 	}
 
+	if insecureSkipVerify := newConfig["insecureSkipVerify"]; insecureSkipVerify != false {
+		t.Fatal("Invalid insecureSkipVerify: ", insecureSkipVerify, "expected", false)
+	}
+
 	ldap := newConfig["ldap"].(map[string]interface{})
 
 	if groupNameAttribute := ldap["groupNameAttribute"]; groupNameAttribute != nil {
@@ -69,5 +73,9 @@ func TestMigrateToV2(t *testing.T) {
 
 	if lookUpBindPassword, expected := ldap["lookUpBindPassword"], ""; lookUpBindPassword != expected {
 		t.Fatal("Invalid \"lookUpBindPassword\": ", lookUpBindPassword, "expected empty")
+	}
+
+	if serverInsecure, expected := ldap["serverInsecure"], "11"; serverInsecure != expected {
+		t.Fatal("Invalid \"serverInsecure\": ", serverInsecure, "expected", expected)
 	}
 }

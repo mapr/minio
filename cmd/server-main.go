@@ -41,8 +41,8 @@ import (
 	"github.com/minio/minio/pkg/certs"
 	"github.com/minio/minio/pkg/color"
 	"github.com/minio/minio/pkg/env"
-	"github.com/sirupsen/logrus"
 	"github.com/minio/minio/pkg/sync/errgroup"
+	"github.com/sirupsen/logrus"
 )
 
 // ServerFlags - server command specific flags
@@ -177,27 +177,6 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 	}
 	logger.FatalIf(err, "Invalid command line arguments")
 
-	// allow transport to be HTTP/1.1 for proxying.
-	globalProxyTransport = newCustomHTTPProxyTransport(&tls.Config{
-		RootCAs: globalRootCAs,
-	}, rest.DefaultTimeout)()
-	globalProxyEndpoints = GetProxyEndpoints(globalEndpoints)
-	globalInternodeTransport = newInternodeHTTPTransport(&tls.Config{
-		RootCAs: globalRootCAs,
-	}, rest.DefaultTimeout)()
-
-	// On macOS, if a process already listens on LOCALIPADDR:PORT, net.Listen() falls back
-	// to IPv6 address ie minio will start listening on IPv6 address whereas another
-	// (non-)minio process is listening on IPv4 of given port.
-	// To avoid this error situation we check for port availability.
-	logger.FatalIf(checkPortAvailability(globalMinioHost, globalMinioPort), "Unable to start the server")
-
-	globalIsErasure = (setupType == ErasureSetupType)
-	globalIsDistErasure = (setupType == DistErasureSetupType)
-	if globalIsDistErasure {
-		globalIsErasure = true
-	}
-
 	var logLevel int
 	var logFile string
 	var modeString string
@@ -210,6 +189,33 @@ func serverHandleCmdArgs(ctx *cli.Context) {
 		logFile = ctx.String("log-file")
 		logLevel = ctx.Int("log-level")
 		modeString = ctx.String("mode")
+	}
+
+	if globalMaprMinioCfg.InsecureSkipVerify {
+		logger.Info("Ignoring certificates validation")
+	}
+
+	// allow transport to be HTTP/1.1 for proxying.
+	globalProxyTransport = newCustomHTTPProxyTransport(&tls.Config{
+		InsecureSkipVerify: bool(globalMaprMinioCfg.InsecureSkipVerify),
+		RootCAs:            globalRootCAs,
+	}, rest.DefaultTimeout)()
+	globalProxyEndpoints = GetProxyEndpoints(globalEndpoints)
+	globalInternodeTransport = newInternodeHTTPTransport(&tls.Config{
+		InsecureSkipVerify: bool(globalMaprMinioCfg.InsecureSkipVerify),
+		RootCAs:            globalRootCAs,
+	}, rest.DefaultTimeout)()
+
+	// On macOS, if a process already listens on LOCALIPADDR:PORT, net.Listen() falls back
+	// to IPv6 address ie minio will start listening on IPv6 address whereas another
+	// (non-)minio process is listening on IPv4 of given port.
+	// To avoid this error situation we check for port availability.
+	logger.FatalIf(checkPortAvailability(globalMinioHost, globalMinioPort), "Unable to start the server")
+
+	globalIsErasure = (setupType == ErasureSetupType)
+	globalIsDistErasure = (setupType == DistErasureSetupType)
+	if globalIsDistErasure {
+		globalIsErasure = true
 	}
 
 	logger.SetOutput(logFile)

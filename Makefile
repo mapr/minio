@@ -65,12 +65,12 @@ build: checks
 # Builds minio with MapR Kafka libraries
 build-mapr: checks
 	@echo "Building minio binary to './minio'"
-	@CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -Wl,-rpath=/opt/mapr/lib -lMapRClient_c" go build --ldflags "$(LDFLAGS)"
+	@GO111MODULE=on CGO_ENABLED=0 go build --ldflags "$(LDFLAGS)"
 
 # Builds minio with local MapR Kafka libraries
 build-local: checks
 	@echo "Building minio binary to './minio'"
-	@GO111MODULE=on GOPROXY=direct GOSUMDB=off CGO_CFLAGS="-I/opt/mapr/include" CGO_LDFLAGS="-L/opt/mapr/lib -Wl,-rpath=/opt/mapr/lib -lMapRClient_c" go build --ldflags "$(LDFLAGS_LOCAL)" -gcflags \"all=-N\"
+	@GO111MODULE=on CGO_ENABLED=0  go build --ldflags "$(LDFLAGS_LOCAL)" -gcflags \"all=-N\"
 
 # Builds verifier
 build-verifier:

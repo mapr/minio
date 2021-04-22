@@ -23,6 +23,6 @@
 		"stsExpiry": "60h",
 		"tlsSkipVerify": "on",
 		"serverStartTls": "",
-		"severInsecure": "on"
+		"serverInsecure": "on"
 	}
 }
