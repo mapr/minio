@@ -89,7 +89,7 @@ pipeline {
                     sh """
                       wget https://golang.org/dl/go1.16.2.linux-amd64.tar.gz  > /dev/null 2>&1 ; \
                       tar zxf go1.16.2.linux-amd64.tar.gz ; \
-                      echo \"deb http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/ubuntu binary trusty\" >> /etc/apt/sources.list ; \
+                      echo \"deb http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/v6.1.0/ubuntu binary trusty\" >> /etc/apt/sources.list ; \
                       apt-get update ; \
                       apt-get -y --allow-unauthenticated install mapr-librdkafka ; \
                       apt-get -y --allow-unauthenticated install mapr-client ; \
@@ -160,7 +160,7 @@ pipeline {
                         tar zxf go1.16.2.linux-amd64.tar.gz ; \
                         echo -e [mapr-core] > /etc/yum.repos.d/mapr-core.repo ; \
                         echo -e name=mapr-core >> /etc/yum.repos.d/mapr-core.repo ; \
-                        echo -e baseurl=http://artifactory.devops.lab/artifactory/prestage/releases-dev/v6.1.0/redhat >> /etc/yum.repos.d/mapr-core.repo ; \
+                        echo -e baseurl=http://dfaf.mip.storage.hpecorp.net/artifactory/prestage/releases-dev/v6.1.0/redhat >> /etc/yum.repos.d/mapr-core.repo ; \
                         echo -e enabled=1 >> /etc/yum.repos.d/mapr-core.repo ; \
                         echo -e gpgcheck=0 >> /etc/yum.repos.d/mapr-core.repo ; \
                         export PATH=\$GOROOT/bin/:\$PATH ;\
