@@ -98,7 +98,7 @@ pipeline {
                       cd ${env.PROJECT}; \
                       git checkout MEP-7.0.0 ; \
                       git config --global url."git@github.com:".insteadOf "https://github.com/" ; \
-                      make mapr-objectstore-gateway-${COMPONENT_VERSION} TIMESTAMP=${ID} ${MAKEFILE_ARGS} ; \
+                      make mapr-objectstore-gateway-${COMPONENT_VERSION} TIMESTAMP=${ID} ; \
                     """
                   }
                 }
@@ -172,7 +172,7 @@ pipeline {
                         cd ${env.PROJECT}; \
                         git checkout MEP-7.0.0 ; \
                         git config --global url."git@github.com:".insteadOf "https://github.com/" ; \
-                        make mapr-objectstore-gateway-${COMPONENT_VERSION} TIMESTAMP=${ID} ${MAKEFILE_ARGS} ; \
+                        make mapr-objectstore-gateway-${COMPONENT_VERSION} TIMESTAMP=${ID}; \
                       """
                     }
                     //export PATH=~/opensource/go/bin/:${ANT_HOME}/bin:${JAVA_HOME}/bin:${MAVEN_HOME}/bin:\$PATH ;\
