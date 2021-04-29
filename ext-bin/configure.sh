@@ -113,6 +113,26 @@ function tweakPermissions() {
     setcap "cap_setuid,cap_setgid+eip" $MINIO_BINARY
     chmod 700 $MAPR_S3_CONFIG
 
+    # Creating log directory if not exists and setting correct permissions for SELinux
+    seLinuxConfig="/etc/selinux/config"
+    if [ -f "$seLinuxConfig" ]
+      then
+        mode=$(getenforce)
+        if [ $mode != "Disabled" ]
+          then
+            logFile=$(grep logPath $MAPR_S3_CONFIG | sed -e "s/\s*\"logPath\"\s*:\s*\"\(.*\)\",/\1/g")
+
+            if [ -z "$logFile" ]
+              then
+                logFile=$OBJECTSTORE_HOME/logs/minio.log
+            fi
+
+            logPath=$(dirname "${logFile}")
+            mkdir -p $logPath
+            chown -R ${MAPR_USER}:${MAPR_GROUP} "${logPath}"
+            chcon -Rv -t var_log_t "${logPath}"
+        fi
+    fi
 }
 
 function extractPemKey() {
